@@ -6,5 +6,5 @@ Project documentation for ThoughtFlow.
 
 Documentation will be added as the project develops, including:
 
--   Architecture and design decisions
--   API specifications and interfaces
+- Architecture and design decisions
+- API specifications and interfaces

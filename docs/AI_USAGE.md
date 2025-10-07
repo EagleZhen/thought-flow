@@ -15,6 +15,7 @@ AI tools were used as **development assistants** to accelerate certain aspects o
 ## Scope of AI Usage
 
 ### Architecture & Design ✅ **Human-Led**
+
 - Technology stack selection (TypeScript, Python, VS Code APIs)
 - System architecture (extension + core + llm-service structure)
 - API and interface design
@@ -24,6 +25,7 @@ AI tools were used as **development assistants** to accelerate certain aspects o
 **AI Role**: Discussed trade-offs, suggested patterns, validated technical approaches
 
 ### Implementation 🤖 **AI-Assisted**
+
 - Boilerplate code (project setup, type definitions, basic structures)
 - Utility functions and helpers
 - Code formatting and structure suggestions
@@ -32,6 +34,7 @@ AI tools were used as **development assistants** to accelerate certain aspects o
 **Human Role**: All code reviewed, understood, tested, and adapted by team members
 
 ### Documentation 📝 **Collaborative**
+
 - README structure and organization
 - API documentation templates
 - Code comments and inline documentation
@@ -49,6 +52,7 @@ AI tools were used as **development assistants** to accelerate certain aspects o
 ## Quality Assurance
 
 All AI-assisted code underwent:
+
 1. **Human review** - Team members read and understood all code
 2. **Testing** - Validated functionality and correctness
 3. **Adaptation** - Modified to fit project-specific requirements
@@ -57,6 +61,7 @@ All AI-assisted code underwent:
 ## Rationale
 
 Using AI tools reflects modern software development practices. Professional teams use these tools to:
+
 - Reduce time on repetitive tasks
 - Focus human effort on complex problem-solving
 - Accelerate learning of new technologies
@@ -67,4 +72,4 @@ Our use of AI tools follows this professional standard while ensuring the core i
 
 ---
 
-*Last updated: October 2025*
+_Last updated: October 2025_
