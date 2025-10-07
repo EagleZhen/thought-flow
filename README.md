@@ -28,4 +28,4 @@ ThoughtFlow analyzes Python code and generates interactive call graphs, making i
 
 ## Course Project
 
-This is a course project for CSCI3100 Software Engineering. AI tools are used in development and properly acknowledged to maintain academic integrity.
+This is a course project for CSCI3100 Software Engineering. AI tools are used in development and properly acknowledged per academic integrity requirements. See [docs/AI_USAGE.md](docs/AI_USAGE.md) for details.
