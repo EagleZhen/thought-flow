@@ -1,12 +1,12 @@
 # Markdown Formatting Test
 
-This  is   a   test   file   with   inconsistent   spacing.
+This is a test file with inconsistent spacing.
 
 ## Code Blocks
 
 ```typescript
-function test(  ){
-return "messy"
+function test() {
+  return 'messy';
 }
 ```
 
@@ -17,12 +17,12 @@ def test(  ):
 
 ## Lists
 
--   Item 1
+- Item 1
 - Item 2
-  -  Nested item
+  - Nested item
 
 ## Links and Text
 
-This is a [link](https://example.com)  with  extra  spaces.
+This is a [link](https://example.com) with extra spaces.
 
-**Bold text**  and  *italic text*.
+**Bold text** and _italic text_.
