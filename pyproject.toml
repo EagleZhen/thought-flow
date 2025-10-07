@@ -1,0 +1,25 @@
+[tool.ruff]
+# Ruff: Modern Python formatter and linter (replaces Black + Flake8 + isort)
+
+# Maximum line length before wrapping (100 is a reasonable balance)
+line-length = 100
+
+# Target Python version (determines which syntax features are allowed)
+# Options: "py38", "py39", "py310", "py311", "py312", "py313"
+target-version = "py310"
+
+[tool.ruff.lint]
+# Linting rules to enable:
+# E - pycodestyle errors (spacing, indentation, syntax)
+# F - Pyflakes (unused imports, undefined variables, logical errors)
+# I - isort (automatic import sorting and organization)
+select = ["E", "F", "I"]
+
+# Rules to ignore:
+# E501 - Line too long (formatter handles this automatically)
+ignore = ["E501"]
+
+[tool.ruff.format]
+# Use double quotes for strings (allows apostrophes without escaping: "It's good")
+# Options: "single", "double", "preserve"
+quote-style = "double"
