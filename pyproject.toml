@@ -13,7 +13,8 @@ target-version = "py310"
 # E - pycodestyle errors (spacing, indentation, syntax)
 # F - Pyflakes (unused imports, undefined variables, logical errors)
 # I - isort (automatic import sorting and organization)
-select = ["E", "F", "I"]
+# N - pep8-naming (naming conventions for variables, functions, classes)
+select = ["E", "F", "I", "N"]
 
 # Rules to ignore:
 # E501 - Line too long (formatter handles this automatically)
