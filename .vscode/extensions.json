@@ -9,5 +9,7 @@
 
     // Universal
     "editorconfig.editorconfig"   // Consistent coding styles - reads .editorconfig
+    // Markdown
+    "shd101wyy.markdown-preview-enhanced", // Rich Markdown preview
   ]
 }
