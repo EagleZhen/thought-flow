@@ -12,9 +12,9 @@ function messyFunction(x: number, y: number) {
 class MessyClass {
   constructor(public name: string) {}
   greet() {
-    console.log('Hello, ' + this.name);
+    console.log("Hello, " + this.name);
   }
 }
 
-const obj = { foo: 'bar', baz: 'qux' };
+const obj = { foo: "bar", baz: "qux" };
 const arr = [1, 2, 3];
