@@ -1,28 +1,31 @@
-## 7 Oct Update
-### Current function
+# ThoughtFlow
 
-Visualize code structures by fetching graph data from a local Python backend and rendering it as an interactive graph using Cytoscape.js
+A VS Code extension that helps developers understand complex codebases by visualizing code execution paths as explorable mind maps.
 
-* UI to Backend:
-  `GET` request to the backend API endpoint with no parameters.
-  Endpoint:`http://127.0.0.1:5000/api/graph`
-* Backend to UI:
-  **Must** respond in the following format:
-  ` { "elements": [ { "data": { "id": "A", "label": "A" } }, { "data": { "id": "B", "label": "B" } }, { "data": { "source": "A", "target": "B" } } ] }`
+## Overview
 
-### Dependencies
+ThoughtFlow analyzes Python code and generates interactive call graphs, making it easier to trace execution flow and understand how functions interact.
 
-### Notes
+## Project Structure
 
-* python is use to process adj lists in consideration of later connection to earlier operations
-* other dependencies for python scripts should be included in graphdata/.venv/lib/site-packages in order for command in extension.ts to use
+- `extension/` - VS Code extension (TypeScript)
+- `core/` - Core analysis logic (TypeScript)
+- `llm-service/` - Optional LLM integration (Python)
+- `experiments/` - Prototypes and explorations
+- `examples/` - Sample Python codebases for testing
+- `docs/` - Documentation
+- `scripts/` - Build and setup scripts
 
-### How to run
+## Getting Started
 
-* Node.js with npm
-* Open project in vscode, press F5 to run. Then, press Ctrl+Shift+P, choose command "Run Code Graph" to run
-* Expected to see the graph
+**Prerequisites:** VS Code, Node.js, Python 3.10+
 
-### Ref
-Extension Guides from vscode
-`https://code.visualstudio.com/api/extension-guides/overview`
+**Setup:**
+
+1. Clone the repository and open in VS Code
+2. Install recommended extensions (VS Code will prompt automatically)
+3. Code auto-formats on save - test by messing with the files in `experiments/test-formatting/`
+
+## Course Project
+
+This is a course project for CSCI3100 Software Engineering. AI tools are used in development and properly acknowledged per academic integrity requirements. See [docs/AI_USAGE.md](docs/AI_USAGE.md) for details.
