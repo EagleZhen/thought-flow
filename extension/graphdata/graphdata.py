@@ -1,19 +1,14 @@
-from typing import Dict, List, Any
+import json
+from typing import Any, Dict, List
 
-def graphdata(
-        adjacency_list: Dict[str, Any], 
-        groupname: List[str] = []
-    ):
-    
-    elements = {
-        "nodes":[],
-        "edges":[]
-    }
+
+def graphdata(adjacency_list: Dict[str, Any], groupname: List[str] = []):
+    elements = {"nodes": [], "edges": []}
 
     for node in adjacency_list:
         data = {
             "data": {
-                "id": node, 
+                "id": node,
                 "label": node,
             }
         }
@@ -23,27 +18,17 @@ def graphdata(
         elements["nodes"].append(data)
 
         for neighbor in adjacency_list[node][0]:
-            elements["edges"].append({
-                "data": {
-                    "source": node, 
-                    "target": neighbor
-                }
-            })
+            elements["edges"].append({"data": {"source": node, "target": neighbor}})
 
     g = 0
     for group in groupname:
-        elements["nodes"].append({
-            "data": {
-                "id": group,
-                "label": group
-            }
-        })
+        elements["nodes"].append({"data": {"id": group, "label": group}})
         g += 1
-        
-        return elements
 
-if __name__ == '__main__':
+    return elements
 
+
+if __name__ == "__main__":
     # input
     adjacency_list = {
         "A": (["B", "C", "z"], "Uppercase"),
@@ -52,10 +37,8 @@ if __name__ == '__main__':
         "D": (["A", "B"], "Uppercase"),
         "u": ([], ""),
         "s": (["z"], ""),
-        "z": (["u"], "")
+        "z": (["u"], ""),
     }
-    groupname = [
-        "Uppercase"
-    ]
+    groupname = ["Uppercase"]
 
-    print(graphdata(adjacency_list, groupname))
+    print(json.dumps(graphdata(adjacency_list, groupname)))  # standard json output
