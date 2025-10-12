@@ -1,8 +1,11 @@
 import json
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 
-def graphdata(adjacency_list: Dict[str, Any], groupname: List[str] = []):
+def graphdata(adjacency_list: Dict[str, Any], groupname: Optional[List[str]] = None):
+    if groupname is None:
+        groupname = []
+
     elements = {"nodes": [], "edges": []}
 
     for node in adjacency_list:

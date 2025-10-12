@@ -12,7 +12,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   // The command has been defined in the package.json file
   // The commandId parameter must match the command field in package.json
-  // I5MPORTANT: Replace 'graph.helloWorld' with your actual command name from package.json
+  // IMPORTANT: Replace 'graph.helloWorld' with your actual command name from package.json
   let disposable = vscode.commands.registerCommand("graph.run", () => {
     const dir_path = path.dirname(__dirname); // get abs path of our extension package directory
     console.log(dir_path, "launched at", process.cwd());
@@ -87,14 +87,14 @@ function drawGraph(data: string) {
   <body>
     <div id="cy"></div>
     <script>
-      var data = JSON.parse(${JSON.stringify(data)});
+      var data = ${data};
       initializeCytoscape(data);
 
       function initializeCytoscape(data) {
         const cy = cytoscape({
           container: document.getElementById('cy'),
-          // --- THIS IS THE FIX ---
-          elements: data,
+          // More explicit way to merge nodes and edges into a single array
+          elements: [...data.nodes, ...data.edges],
           style: [
             {
               selector: 'node',
