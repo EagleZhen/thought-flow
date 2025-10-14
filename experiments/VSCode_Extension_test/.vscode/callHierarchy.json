@@ -1,17 +1,47 @@
 {
-  "function": "add",
-  "uri": "toy_py/app.py",
-  "line": 6,
+  "function": "b",
+  "uri": "toy_py/math_utils.py",
+  "line": 8,
   "incoming": [
     {
-      "from": "add",
-      "uri": "toy_py/math_utils.py",
+      "from": "b",
+      "uri": "toy_ts/a.ts",
+      "line": 1
+    },
+    {
+      "from": "b",
+      "uri": "toy_ts/a.ts",
       "line": 6
     },
     {
-      "from": "add",
-      "uri": "toy_py/app.py",
+      "from": "b",
+      "uri": "toy_ts/a.ts",
+      "line": 10
+    },
+    {
+      "from": "b",
+      "uri": "toy_ts/a.js",
       "line": 6
+    },
+    {
+      "from": "b",
+      "uri": "toy_ts/a.js",
+      "line": 10
+    },
+    {
+      "from": "b",
+      "uri": "toy_ts/a.js",
+      "line": 13
+    },
+    {
+      "from": "b",
+      "uri": "call-hierarchy-demo/call-hierarchy-demo/src/extension.ts",
+      "line": 239
+    },
+    {
+      "from": "b",
+      "uri": "call-hierarchy-demo/call-hierarchy-demo/out/extension.js",
+      "line": 219
     }
   ],
   "outgoing": []
