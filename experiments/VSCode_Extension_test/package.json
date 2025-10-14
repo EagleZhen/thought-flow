@@ -1,0 +1,7 @@
+{
+  "dependencies": {
+    "@types/vscode": "^1.105.0",
+    "typescript": "^5.9.3",
+    "vscode": "^1.1.34"
+  }
+}
