@@ -1,0 +1,29 @@
+{
+  "function": "run",
+  "uri": "toy_py/app.py",
+  "line": 4,
+  "incoming": [
+    {
+      "from": "run",
+      "uri": "toy_py/app.py",
+      "line": 4
+    },
+    {
+      "from": "run",
+      "uri": "toy_py/app.py",
+      "line": 12
+    }
+  ],
+  "outgoing": [
+    {
+      "to": "add",
+      "uri": "toy_py/app.py",
+      "line": 6
+    },
+    {
+      "to": "mul",
+      "uri": "toy_py/app.py",
+      "line": 7
+    }
+  ]
+}
