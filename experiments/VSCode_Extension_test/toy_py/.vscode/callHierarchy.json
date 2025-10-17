@@ -1,18 +1,29 @@
 {
-  "function": "mul",
+  "function": "run",
   "uri": "app.py",
-  "line": 7,
+  "line": 4,
   "incoming": [
     {
-      "from": "mul",
+      "from": "run",
       "uri": "app.py",
-      "line": 7
+      "line": 4
     },
     {
-      "from": "mul",
-      "uri": "math_utils.py",
-      "line": 13
+      "from": "run",
+      "uri": "app.py",
+      "line": 12
     }
   ],
-  "outgoing": []
+  "outgoing": [
+    {
+      "to": "add",
+      "uri": "app.py",
+      "line": 6
+    },
+    {
+      "to": "mul",
+      "uri": "app.py",
+      "line": 7
+    }
+  ]
 }
