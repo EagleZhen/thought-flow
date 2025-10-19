@@ -1,196 +1,152 @@
+import * as fs from 'fs';
+import * as path from 'path';
+
 //const graphdata = require('./callHierarchy.json')
 // import * as graphdata from './callHierarchy.json';
-import graphdata from '../callHierarchy.json' with { type: "json" };
+import graphdata from '../callHierarchy.json' with { type: "json" }; //
 // import graphdata from './callHierarchy.json';
 
-const baseid = graphdata.uri.replace(/(\/|\.)/gm, "_") + '_' +graphdata.function;
+const baseid = graphdata.uri.replace(/(\/|\.)/gm, "_") + '_' +graphdata.function; //
 // console.log(`cid = ${ baseid }`);
-const baselabel = baseid;
+const baselabel = baseid; //
 // console.log(`clabel = ${ baselabel }`);
 
-var nodestr = '[';
-var edgestr = '[';
-nodestr += `{
-            "data": {
-                "id": "${ baseid }",
-                "label": "${ baselabel }",
-            }
-        }, `;
-var nodes: string[] = [];
-nodes.push(baseid);
+// --- Modification Start ---
+const nodesArray: any[] = []; // Use an array to store node objects
+const edgesArray: any[] = []; // Use an array to store edge objects
 
-var id = '';
-var label = '';
-
-for (const item of graphdata.incoming){
-    id = (item as any).uri.replace(/(\/|\.)/gm, "_") + '_line' + (item as any).line;
-    // console.log(id);
-    label = (item as any).uri + ' line' + (item as any).line;
-    
-    if(!(nodes.includes(id))){
-        nodestr += `{
-            "data": {
-                "id": "${ id }",
-                "label": "${ label }",
-            }
-        },`;
-        nodes.push(id);
+// Add the base node
+nodesArray.push({
+    data: {
+        id: baseid,
+        label: baselabel,
     }
-    edgestr += `{"data": {"source": "${ id }", "target": "${ baseid }"}}, `;
+});
+
+const addedNodeIds = new Set<string>([baseid]); // Use a Set to track added node IDs to avoid duplicates
+
+var id = ''; // Define id here
+var label = ''; // Define label here
+
+// Process incoming edges and nodes
+for (const item of graphdata.incoming){ //
+    id = (item as any).uri.replace(/(\/|\.)/gm, "_") + '_line' + (item as any).line; //
+    // console.log(id);
+    label = (item as any).uri + ' line' + (item as any).line; //
+
+    // If the node hasn't been added, add it to the array
+    if(!addedNodeIds.has(id)){ //
+        nodesArray.push({
+            data: {
+                id: id,
+                label: label,
+            }
+        });
+        addedNodeIds.add(id); //
+    }
+    // Add the edge
+    edgesArray.push({ //
+        data: {
+            source: id, // source for incoming is id
+            target: baseid
+        }
+    });
 }
 
-for (const item of graphdata.outgoing){
+// Process outgoing edges and nodes
+for (const item of graphdata.outgoing){ //
     // id = (item as any).uri.replace(/(\/|\.)/gm, "_") + '_line' + (item as any).line + '_' + (item as any).uri.to(/(\/|\.)/gm, "_");
-    id = (item as any).uri.replace(/(\/|\.)/gm, "_") + '_' + (item as any).to;
+    id = (item as any).uri.replace(/(\/|\.)/gm, "_") + '_' + (item as any).to; //
     // console.log(id);
-    label = (item as any).uri + ' line' + (item as any).line;
-    
-    if(!(nodes.includes(id))){
-        nodestr += `{
-            "data": {
-                "id": "${ id }",
-                "label": "${ label }",
+    label = (item as any).uri + ' line' + (item as any).line; //
+
+    // If the node hasn't been added, add it to the array
+    if(!addedNodeIds.has(id)){ //
+        nodesArray.push({
+            data: {
+                id: id,
+                label: label,
             }
-        },`;
-        nodes.push(id);
+        });
+        addedNodeIds.add(id); //
     }
-    edgestr += `{"data": {"source": "${ baseid }", "target": "${ id }"}}, `;
+    // Add the edge
+    edgesArray.push({ //
+        data: {
+            source: baseid,
+            target: id // target for outgoing is id
+        }
+    });
 }
 
-nodestr += ']';
-edgestr += ']';
-const elements = `{"nodes": ${ nodestr }, "edges": ${ edgestr }}`;
-console.log(elements);
+// Use JSON.stringify to convert the object containing arrays into a valid JSON string
+const elementsObject = {
+    nodes: nodesArray,
+    edges: edgesArray
+};
+const elements = JSON.stringify(elementsObject); // <-- Generate standard JSON string directly
+
+console.log("Generated elements JSON:", elements); // Log the generated JSON
+// --- Modification End ---
 
 // below is for testing validity of ${ elements }, simply replace with latest ui stuffs
 
-import * as vscode from 'vscode';
-const util = require('node:util');
+import * as vscode from 'vscode'; //
+const util = require('node:util'); //
 
-export function activate(context: vscode.ExtensionContext) {
+export function activate(context: vscode.ExtensionContext) { //
 
-    let disposable = vscode.commands.registerCommand('graph.run', () => {
+    console.log("==> Activating graph extension in experiments/graphdata..."); // Log activation
 
-        const panel = vscode.window.createWebviewPanel(
+    let disposable = vscode.commands.registerCommand('graph.run', () => { //
+        console.log("==> 'graph.run' command executed!"); // Log command execution
+
+        const panel = vscode.window.createWebviewPanel( //
             'codeGraphPanel', // Internal ID for the webview panel
             'Code Graph', // Title of the panel displayed to the user
             vscode.ViewColumn.One, // Show the new webview panel in the first editor column
             {
                 // Enable javascript in the webview
-                enableScripts: true 
+                enableScripts: true, //
+                localResourceRoots: [ //
+                  vscode.Uri.joinPath(context.extensionUri, 'webview')
+              ]
             }
         );
 
-        var data = "";
-        try{
-            data = elements;
-            console.log(`data = ${data}`);
-            console.log(drawGraph(data));
-
+        var data = ""; // // Not strictly needed anymore
+        try{ //
             // Set the HTML content for the webview panel
-            panel.webview.html = drawGraph(data);
+            const graphDataString = elements; // // Use the generated JSON string
+
+            const webviewFolderPathOnDisk = vscode.Uri.joinPath( //
+              context.extensionUri, 'webview'
+          );
+
+            const htmlPathOnDisk = vscode.Uri.joinPath(webviewFolderPathOnDisk, 'graphView.html'); //
+
+            let htmlContent = fs.readFileSync(htmlPathOnDisk.fsPath, 'utf8'); //
+
+            const cssPathOnDisk = vscode.Uri.joinPath(webviewFolderPathOnDisk, 'graphStyle.css'); //
+            const scriptPathOnDisk = vscode.Uri.joinPath(webviewFolderPathOnDisk, 'graphScript.js'); //
+
+            const cssUri = panel.webview.asWebviewUri(cssPathOnDisk); //
+            const scriptUri = panel.webview.asWebviewUri(scriptPathOnDisk); //
+
+            htmlContent = htmlContent.replace('${graphDataJson}', graphDataString); //
+            htmlContent = htmlContent.replace('${cssUri}', cssUri.toString()); //
+            htmlContent = htmlContent.replace('${scriptUri}', scriptUri.toString()); //
+
+            panel.webview.html = htmlContent; //
         }
-        catch (error){
+        catch (error){ //
             console.log(error);
         }
 
     });
 
-	  context.subscriptions.push(disposable);
+    context.subscriptions.push(disposable); //
 }
 
 // This method is called when your extension is deactivated
-export function deactivate() {}
-
-
-/**
- * Returns the HTML content for the webview panel.
- * This contains the CSS, the Cytoscape.js library, and the script to fetch and render the graph.
- */
-function drawGraph(data: string) {
-    return `<!DOCTYPE html>
-    <html lang="en">
-    <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Code Graph</title>
-
-      <script src="https://unpkg.com/cytoscape@3.26.0/dist/cytoscape.min.js"></script>
-      
-      <style>
-        body { margin: 0; padding: 0; overflow: hidden; }
-        #cy {
-          width: 100vw; /* 100% of viewport width */
-          height: 100vh; /* 100% of viewport height */
-          display: block;
-          position: absolute;
-          top: 0;
-          left: 0;
-        }
-      </style>
-    </head>
-    <body>
-      <div id="cy"></div>
-
-      <script>
-        var data = ${data};
-        initializeCytoscape(data);
-
-        /**
-         * This function initializes the Cytoscape graph with the provided data.
-         * @param {object} data - The graph data from the server, expected format: { elements: [...] }
-         */
-        function initializeCytoscape(data) {
-
-          const cy = cytoscape({
-            container: document.getElementById('cy'),
-            elements: data,
-            style: [
-              { 
-                selector: 'node', 
-                style: {
-                  'background-color': '#666', 
-                  'label': 'data(id)'
-                }
-              },
-              {
-                selector: 'node:parent', // Style for parent nodes
-                style: {
-                  'background-opacity': 0.3,
-                  'background-color': '#ccc',
-                  'border-color': '#999',
-                  'border-width': 2,
-                  'label': 'data(label)'
-                }
-              },
-              { 
-                selector: 'edge', 
-                style: { 
-                  'width': 3, 
-                  'line-color': '#ccc', 
-                  'target-arrow-color': '#ccc', 
-                  'target-arrow-shape': 'triangle', 
-                  'curve-style': 'bezier' 
-                }
-              }
-            ],
-            layout: { 
-              name: 'cose', 
-              idealEdgeLength: 100, 
-              nodeOverlap: 20, 
-              fit: true, 
-              padding: 30 
-            }
-          });
-
-          // Add a click listener to the nodes for future interactivity
-          cy.on('tap', 'node', function(evt){
-            const node = evt.target;
-            console.log('Tapped node: ' + node.id());
-            // You can add more interactive features here
-          });
-        }
-      </script>
-    </body>
-    </html>`;
-}
+export function deactivate() {} //

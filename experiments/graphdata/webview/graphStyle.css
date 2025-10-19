@@ -1,0 +1,47 @@
+body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  #cy {
+    width: 100vw; /* 100% of viewport width */
+    height: 100vh; /* 100% of viewport height */
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+
+  /* You can add more Cytoscape styles below */
+
+  /* Example node style (from original code) */
+  /* This will be applied via JavaScript, but you can define base styles here */
+  /*
+  node {
+    background-color: #666;
+    label: data(id);
+  }
+  */
+
+  /* Example parent node style (from original code) */
+  /*
+  node:parent {
+    background-opacity: 0.3;
+    background-color: #ccc;
+    border-color: #999;
+    border-width: 2;
+    label: data(label);
+  }
+  */
+
+  /* Example edge style (from original code) */
+  /*
+  edge {
+    width: 3;
+    line-color: #ccc;
+    target-arrow-color: #ccc;
+    target-arrow-shape: triangle;
+    curve-style: bezier;
+  }
+  */
