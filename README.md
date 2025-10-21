@@ -24,13 +24,20 @@ ThoughtFlow analyzes Python code and generates interactive call graphs, making i
 
 ## Getting Started
 
-**Prerequisites:** VS Code, Node.js, Python 3.10+
+**Prerequisites:** VS Code, Node.js
 
 **Setup:**
 
-1. Clone the repository and open in VS Code
-2. Install recommended extensions (VS Code will prompt automatically)
-3. Code auto-formats on save - test by messing with the files in `experiments/test-formatting/`
+1. Clone and open in VS Code
+2. Install dependencies: `cd extension && npm install`
+3. Press `F5` → Select **"VS Code Extension Development"**
+4. In the new Extension Development Host window, open a Python project (or use `test-workspace/`)
+5. Click on a function, then:
+   - Right-click → **"Show Python Call Hierarchy"**, or
+   - Press `Cmd+Shift+H` / `Ctrl+Shift+H`, or
+   - `Cmd+Shift+P` / `Ctrl+Shift+P` → **"Show Python Call Hierarchy"**
+
+Code auto-formats on save (Prettier for TS/JS). Feel free to mess with the codes in `experiments/test-formatting/`.
 
 ## Course Project
 
