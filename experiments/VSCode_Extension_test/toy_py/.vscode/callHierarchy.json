@@ -1,20 +1,37 @@
 {
-  "function": "helper_branch",
-  "current_file": "branching.py",
-  "line": 6,
+  "function": "choose_op",
+  "current_file": "app.py",
+  "line": 20,
   "incoming": [
     {
-      "from": "pick_max",
-      "caller_line": 1,
-      "file_path": "branching.py",
-      "line": 4
+      "from": "run",
+      "caller_line": 18,
+      "file_path": "app.py",
+      "line": 20
     },
     {
-      "from": "pick_max",
-      "caller_line": 1,
-      "file_path": "branching.py",
-      "line": 6
+      "from": "run",
+      "caller_line": 18,
+      "file_path": "app.py",
+      "line": 21
+    },
+    {
+      "from": "run",
+      "caller_line": 18,
+      "file_path": "app.py",
+      "line": 22
     }
   ],
-  "outgoing": []
+  "outgoing": [
+    {
+      "to": "add",
+      "file_path": "app.py",
+      "line": 10
+    },
+    {
+      "to": "mul",
+      "file_path": "app.py",
+      "line": 12
+    }
+  ]
 }
