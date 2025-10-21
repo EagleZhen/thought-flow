@@ -8,6 +8,8 @@ ThoughtFlow analyzes Python code and generates interactive call graphs, making i
 
 ## Project Structure
 
+- `docs/` - Documentation
+- `experiments/` - Sandbox for prototyping new approaches
 - `extension/` - VS Code extension (TypeScript)
   - `src/` - Source code (supports `@/*` path aliases)
     - `extension.ts` - Extension activation, command registration, orchestration
@@ -18,8 +20,6 @@ ThoughtFlow analyzes Python code and generates interactive call graphs, making i
     - `templates/` - HTML/CSS/JS templates for webview
   - `dist/` - Production build output (Webpack)
   - `out/` - Development build output (tests)
-- `docs/` - Documentation
-- `experiments/` - Sandbox for prototyping new approaches
 - `license-service/` - Backend API for user and license management (to be implemented)
 - `llm-service/` - Optional LLM integration (future)
 - `test-workspace/` - Sample Python projects for testing the extension
