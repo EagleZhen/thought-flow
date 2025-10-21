@@ -26,7 +26,10 @@ export interface FunctionCall {
  * Represents call relationships for a target function.
  */
 export interface CallHierarchy {
-  /** The function being analyzed */
+  /**
+   * The function being analyzed,
+   * i.e., the function that users clicked on.
+   */
   target: FunctionCall;
 
   /** Incoming calls (functions that call the target) */
