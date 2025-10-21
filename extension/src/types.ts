@@ -1,5 +1,6 @@
 /**
  * Reference to a function in the codebase.
+ * filePath + name + line uniquely identify a function.
  */
 export interface FunctionCall {
   /** Function name. Example: "greet", "main" */
