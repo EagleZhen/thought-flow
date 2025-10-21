@@ -17,9 +17,10 @@ ThoughtFlow analyzes Python code and generates interactive call graphs, making i
     - `templates/` - HTML/CSS/JS templates for webview
   - `dist/` - Production build output (Webpack)
   - `out/` - Development build output (tests)
+- `docs/` - Documentation
 - `experiments/` - Sandbox for prototyping new approaches
 - `llm-service/` - Optional LLM integration (future)
-- `docs/` - Documentation
+- `test-workspace/` - Sample Python projects for testing the extension
 
 ## Getting Started
 
