@@ -48,3 +48,16 @@ export interface CytoscapeNode {
     label: string;
   };
 }
+
+/**
+ * An edge in the Cytoscape graph representing a function call.
+ */
+export interface CytoscapeEdge {
+  data: {
+    /** Source node ID (caller) */
+    source: string;
+
+    /** Target node ID (callee) */
+    target: string;
+  };
+}
