@@ -61,3 +61,14 @@ export interface CytoscapeEdge {
     target: string;
   };
 }
+
+/**
+ * Cytoscape graph data structure.
+ */
+export interface CytoscapeGraph {
+  /** Graph nodes (functions) */
+  nodes: CytoscapeNode[];
+
+  /** Graph edges (function calls) */
+  edges: CytoscapeEdge[];
+}
