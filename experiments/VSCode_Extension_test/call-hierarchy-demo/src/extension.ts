@@ -214,7 +214,7 @@ const customProvider: vscode.CallHierarchyProvider = {
         const defPattern = new RegExp('^\\s*def\\s+' + escapeRegExp(item.name) + '\\s*\\(');
         let defLine = item.selectionRange.start.line;
 
-        // If current line is not the def line, search for it
+        // If current line is not the def line, search for it (maybe can improve but cannot delete)
         if (!defPattern.test(doc.lineAt(defLine).text)) {
             let found = false;
             // Search upwards from current position
