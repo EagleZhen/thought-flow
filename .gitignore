@@ -17,6 +17,9 @@ node_modules/
 # VS Code Extension build output
 dist/
 
+# VS Code Extension testing output
+out/
+
 # VS Code Extension test environment
 .vscode-test/
 
