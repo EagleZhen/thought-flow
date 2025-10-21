@@ -1,61 +1,57 @@
-// Import the VS Code extension API under the alias `vscode` so we can
-// access editor/commands/workspace types and functions.
+// Import the VS Code extension API to access editor/commands/workspace types and functions.
 import * as vscode from 'vscode';
 
 /**
- * Helper: call built-in call hierarchy commands
+ * Helper function to get call hierarchy using VS Code's built-in commands.
  *
- * Given a document + position, this function uses VS Code's built-in call
- * hierarchy commands to prepare the symbol at the cursor and then fetches both
- * incoming (who calls me) and outgoing (who I call) relationships.
+ * @param document - The Python document being analyzed
+ * @param position - The cursor position within the document
+ * @returns Call hierarchy data with incoming and outgoing calls, or null if not found
  */
-export async function getCallHierarchy(
+async function getCallHierarchy(
     document: vscode.TextDocument,
     position: vscode.Position
 ) {
     try {
-        // Log to the developer console for debugging; helpful when running the
-        // extension in the Extension Host.
         console.log('🔍 Preparing call hierarchy...');
-        
-        // Ask VS Code to "prepare" the call hierarchy at a document location.
-        // This returns one or more CallHierarchyItems (we'll use the first).
-        const hierarchy = await vscode.commands.executeCommand<vscode.CallHierarchyItem[]>(
+
+        // Prepare the call hierarchy at the cursor position.
+        const hierarchyItems = await vscode.commands.executeCommand<vscode.CallHierarchyItem[]>(
             'vscode.prepareCallHierarchy',
             document.uri,
             position
         );
 
-        console.log(`📋 Hierarchy items found: ${hierarchy?.length || 0}`);
-        
-        if (!hierarchy || hierarchy.length === 0) {
+        console.log(`📋 Hierarchy items found: ${hierarchyItems?.length || 0}`);
+
+        if (!hierarchyItems || hierarchyItems.length === 0) {
             console.log('❌ No hierarchy items found');
             return null;
         }
 
-        // The symbol at the cursor (function/class/method etc.).
-        const item = hierarchy[0];
-        console.log(`🎯 Working with symbol: ${item.name}`);
+        // Get the symbol at the cursor (function, class, or method).
+        const targetSymbol = hierarchyItems[0];
+        console.log(`🎯 Working with symbol: ${targetSymbol.name}`);
 
         console.log('📞 Getting incoming calls...');
-        // Who calls this symbol?
+        // Get all callers of this symbol.
         const incomingCalls = await vscode.commands.executeCommand<vscode.CallHierarchyIncomingCall[]>(
             'vscode.provideIncomingCalls',
-            item
+            targetSymbol
         );
         console.log(`📞 Incoming calls found: ${incomingCalls?.length || 0}`);
 
         console.log('📤 Getting outgoing calls...');
-        // Which symbols does this one call?
+        // Get all callees (functions this symbol calls).
         const outgoingCalls = await vscode.commands.executeCommand<vscode.CallHierarchyOutgoingCall[]>(
             'vscode.provideOutgoingCalls',
-            item
+            targetSymbol
         );
         console.log(`📤 Outgoing calls found: ${outgoingCalls?.length || 0}`);
 
-        // Return a small object with the base symbol and the two edge lists.
+        // Return the call hierarchy data.
         return {
-            function: item,
+            function: targetSymbol,
             callers: incomingCalls || [],
             callees: outgoingCalls || []
         };
@@ -65,219 +61,217 @@ export async function getCallHierarchy(
     }
 }
 
-/** Utility: escape RegExp special chars (Just a safety function)
- * When building regex from user text (like a function name), we must escape
- * regex meta characters so our search remains literal.
+/**
+ * Escape special regex characters in a string for safe regex construction.
+ *
+ * @param inputString - The string to escape
+ * @returns The escaped string safe for use in regex patterns
  */
-function escapeRegExp(s: string) {
-    return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+function escapeRegExp(inputString: string): string {
+    return inputString.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 /**
- * Simple custom CallHierarchyProvider
- *
- * This provider is a basic example that:
- * - Treats the word under the cursor as a function symbol.
- * - Scans all .ts/.js files for incoming calls using a regex.
- * - Scans the current file's function body for outgoing calls using a regex.
- *
- * It does not do full semantic analysis; it's intentionally lightweight.
+ * Custom Call Hierarchy Provider for Python files.
+ * Provides a simple regex-based call hierarchy analysis for Python code.
  */
 const customProvider: vscode.CallHierarchyProvider = {
+    /**
+     * Prepare the call hierarchy by identifying the symbol at the cursor position.
+     *
+     * @param document - The Python document being analyzed
+     * @param position - The cursor position
+     * @returns A CallHierarchyItem representing the symbol, or undefined if not found
+     */
     async prepareCallHierarchy(
         document: vscode.TextDocument,
         position: vscode.Position,
-        token: vscode.CancellationToken
     ) {
-        // Find the word at the cursor (the candidate function name).
-        const range = document.getWordRangeAtPosition(position);
-        if (!range) {
-            // If there isn't a word, we can't prepare a symbol.
+        // Find the word at the cursor position.
+        const nameRange = document.getWordRangeAtPosition(position);
+        if (!nameRange) {
             return undefined;
         }
 
-        // Get the selected name and construct a CallHierarchyItem at that range.
-        const name = document.getText(range);
-        const item = new vscode.CallHierarchyItem(
+        // Create a CallHierarchyItem for the symbol at the cursor.
+        const symbolName = document.getText(nameRange);
+        const symbolItem = new vscode.CallHierarchyItem(
             vscode.SymbolKind.Function,
-            name,
+            symbolName,
             '',
             document.uri,
-            range,
-            range
+            nameRange,  // fullRange - the entire function
+            nameRange   // selectionRange - the identifier/name part to highlight
         );
-        return item;
+        return symbolItem;
     },
 
+    /**
+     * Find all incoming calls (callers) for the given symbol.
+     * Searches all Python files in the workspace for function calls.
+     *
+     * @param item - The CallHierarchyItem to find callers for
+     * @returns Array of incoming calls with their locations
+     */
     async provideCallHierarchyIncomingCalls(
         item: vscode.CallHierarchyItem,
-        token: vscode.CancellationToken
     ) {
-        // We'll collect all locations where `item.name` is called.
-    const results: vscode.CallHierarchyIncomingCall[] = [];
-        const name = item.name;
-    // Search all TypeScript/JavaScript/Python files in the workspace (excluding node_modules).
-    const files = await vscode.workspace.findFiles('**/*.{ts,js,py}', '**/node_modules/**');
-        for (const uri of files) {
-            // Read each file's text and search for "name(" occurrences.
-            const doc = await vscode.workspace.openTextDocument(uri);
-            const text = doc.getText();
-            // Build a regex for a word boundary + function name + optional spaces + '('.
-            const regex = new RegExp('\\b' + escapeRegExp(name) + '\\s*\\(', 'g');
-            let m: RegExpExecArray | null;
-            while ((m = regex.exec(text)) !== null) {
-                // Map the match index to a position and then to a range for the name.
-                const start = doc.positionAt(m.index);
-                const wordRange =
-                    doc.getWordRangeAtPosition(start) ??
-                    new vscode.Range(start, start.translate(0, name.length));
-                // Create a CallHierarchyItem representing the caller at this location.
-                const fromItem = new vscode.CallHierarchyItem(
+        const incomingCallsList: vscode.CallHierarchyIncomingCall[] = [];
+        const targetFunctionName = item.name;
+
+        // Search all Python files in the workspace (excluding node_modules).
+        const pythonFiles = await vscode.workspace.findFiles('**/*.py', '**/node_modules/**');
+
+        // For every Python file found, open it (openTextDocument) and read its content (getText()).
+        for (const fileUri of pythonFiles) {
+            const document = await vscode.workspace.openTextDocument(fileUri);
+            const fileContent = document.getText();
+
+            // Build regex to find where the function is called: function_name followed by '('.
+            const functionCallRegex = new RegExp('\\b' + escapeRegExp(targetFunctionName) + '\\s*\\(', 'g');
+            // Runs the regex repeatedly across the text, one match at a time.
+            let regexMatch: RegExpExecArray | null;
+
+            // Each time a match is found, create a CallHierarchyItem for the caller location.
+            while ((regexMatch = functionCallRegex.exec(fileContent)) !== null) {
+                // Get the position and range of the function call.
+                const callPosition = document.positionAt(regexMatch.index);
+                const callRange = document.getWordRangeAtPosition(callPosition) ??
+                    new vscode.Range(callPosition, callPosition.translate(0, targetFunctionName.length));
+
+                // Create a CallHierarchyItem for the caller location.
+                const callerItem = new vscode.CallHierarchyItem(
                     vscode.SymbolKind.Function,
-                    doc.getText(wordRange),
+                    document.getText(callRange),
                     '',
-                    uri,
-                    wordRange,
-                    wordRange
+                    fileUri,
+                    callRange,
+                    callRange
                 );
-                // Record one incoming call with the range where it's referenced.
-                results.push(new vscode.CallHierarchyIncomingCall(fromItem, [wordRange]));
+
+                // Add the incoming call to results.
+                incomingCallsList.push(new vscode.CallHierarchyIncomingCall(callerItem, [callRange]));
             }
         }
-        // Return all discovered incoming call sites.
-        return results;
+
+        return incomingCallsList;
     },
 
+    /**
+     * Find all outgoing calls (callees) from the given symbol.
+     * Scans the function body to find all function calls made within it.
+     * Uses Python's indentation-based syntax to determine function body boundaries.
+     *
+     * @param item - The CallHierarchyItem to find callees for
+     * @returns Array of outgoing calls with their locations
+     */
     async provideCallHierarchyOutgoingCalls(
         item: vscode.CallHierarchyItem,
-        token: vscode.CancellationToken
     ) {
-        // We'll scan the body of the symbol at `item` for call-like tokens.
-        const results: vscode.CallHierarchyOutgoingCall[] = [];
-        const doc = await vscode.workspace.openTextDocument(item.uri);
-        const text = doc.getText();
+        const outgoingCallsList: vscode.CallHierarchyOutgoingCall[] = [];
+        const document = await vscode.workspace.openTextDocument(item.uri);
+        const fullDocumentText = document.getText();
 
-        // Depending on language, extract function body region differently.
-        let bodyStartOffset = -1;
-        let bodyEndOffset = -1;
+        // Extract the function body using Python's indentation rules.
+        const functionDefLine = item.selectionRange.start.line;
+        const totalLineCount = document.lineCount;
+        const functionDefIndent = document.lineAt(functionDefLine).firstNonWhitespaceCharacterIndex;
 
-        if (doc.languageId === 'python') {
-            // Python: determine function body by indentation.
-            const defLine = item.selectionRange.start.line;
-            const total = doc.lineCount;
-            const defIndent = doc.lineAt(defLine).firstNonWhitespaceCharacterIndex;
-
-            // Find first non-empty body line after the def line.
-            let firstBodyLine = defLine + 1;
-            while (firstBodyLine < total && doc.lineAt(firstBodyLine).text.trim().length === 0) {
-                firstBodyLine++;
-            }
-            if (firstBodyLine >= total) {
-                return results; // no body
-            }
-
-            const bodyIndent = doc.lineAt(firstBodyLine).firstNonWhitespaceCharacterIndex;
-            if (bodyIndent <= defIndent) {
-                return results; // not a proper indented block
-            }
-
-            // Body starts at the first non-empty line.
-            const bodyStartPos = new vscode.Position(firstBodyLine, 0);
-            bodyStartOffset = doc.offsetAt(bodyStartPos);
-
-            // Walk forward until a non-empty line dedents below bodyIndent.
-            let endLine = firstBodyLine;
-            for (let ln = firstBodyLine; ln < total; ln++) {
-                const lineText = doc.lineAt(ln).text;
-                if (lineText.trim().length === 0) {
-                    endLine = ln; // allow blank lines inside the block
-                    continue;
-                }
-                const indent = doc.lineAt(ln).firstNonWhitespaceCharacterIndex;
-                if (indent < bodyIndent) {
-                    break; // dedented: block ended before this line
-                }
-                endLine = ln;
-            }
-
-            const bodyEndPos = doc.lineAt(endLine).range.end;
-            bodyEndOffset = doc.offsetAt(bodyEndPos);
-        } else {
-            // Languages with braces (TypeScript/JavaScript): find body by matching braces.
-            const searchStart = doc.offsetAt(item.selectionRange.end);
-            let braceIndex = text.indexOf('{', searchStart);
-            if (braceIndex === -1) {
-                return results; // no body found
-            }
-            let depth = 0;
-            let endIndex = -1;
-            for (let i = braceIndex; i < text.length; i++) {
-                if (text[i] === '{') {
-                    depth++;
-                } else if (text[i] === '}') {
-                    depth--;
-                    if (depth === 0) {
-                        endIndex = i;
-                        break;
-                    }
-                }
-            }
-            if (endIndex === -1) {
-                endIndex = text.length;
-            }
-            bodyStartOffset = braceIndex + 1;
-            bodyEndOffset = endIndex;
+        // Find the first non-empty line after the function definition.
+        let firstBodyLine = functionDefLine + 1;
+        while (firstBodyLine < totalLineCount && document.lineAt(firstBodyLine).text.trim().length === 0) {
+            firstBodyLine++;
         }
+
+        if (firstBodyLine >= totalLineCount) {
+            return outgoingCallsList; // No function body found.
+        }
+
+        const bodyIndentLevel = document.lineAt(firstBodyLine).firstNonWhitespaceCharacterIndex;
+        if (bodyIndentLevel <= functionDefIndent) {
+            return outgoingCallsList; // Not a proper indented block.
+        }
+
+        // Mark the start of the function body.
+        const bodyStartPosition = new vscode.Position(firstBodyLine, 0);
+        const bodyStartOffset = document.offsetAt(bodyStartPosition);
+
+        // Find the end of the function body by checking indentation.
+        let lastBodyLine = firstBodyLine;
+        for (let lineNumber = firstBodyLine; lineNumber < totalLineCount; lineNumber++) {
+            const currentLineText = document.lineAt(lineNumber).text;
+
+            // Allow blank lines within the function body.
+            if (currentLineText.trim().length === 0) {
+                lastBodyLine = lineNumber;
+                continue;
+            }
+
+            const currentLineIndent = document.lineAt(lineNumber).firstNonWhitespaceCharacterIndex;
+            if (currentLineIndent < bodyIndentLevel) {
+                break; // Function body ended (dedented to lower level).
+            }
+            lastBodyLine = lineNumber;
+        }
+
+        const bodyEndPosition = document.lineAt(lastBodyLine).range.end;
+        const bodyEndOffset = document.offsetAt(bodyEndPosition);
 
         if (bodyStartOffset < 0 || bodyEndOffset < 0 || bodyEndOffset <= bodyStartOffset) {
-            return results;
+            return outgoingCallsList;
         }
 
-        const body = text.substring(bodyStartOffset, bodyEndOffset);
+        // Extract the function body text.
+        const functionBodyText = fullDocumentText.substring(bodyStartOffset, bodyEndOffset);
 
-        // A simplistic call pattern: identifier followed by '(' (e.g., foo()).
-        const callRegex = /\b([A-Za-z_][A-Za-z0-9_]*)\s*\(/g;
-        let m: RegExpExecArray | null;
-        while ((m = callRegex.exec(body)) !== null) {
-            const calledName = m[1];
-            if (calledName === item.name) {
-                continue; // ignore self call
+        // Find all function calls in the body using regex pattern: identifier followed by '('.
+        const functionCallPattern = /\b([A-Za-z_][A-Za-z0-9_]*)\s*\(/g;
+        let regexMatch: RegExpExecArray | null;
+
+        while ((regexMatch = functionCallPattern.exec(functionBodyText)) !== null) {
+            const calledFunctionName = regexMatch[1];
+
+            // Skip self-recursive calls.
+            if (calledFunctionName === item.name) {
+                continue;
             }
-            const absIndex = bodyStartOffset + m.index;
-            const start = doc.positionAt(absIndex);
-            const wordRange =
-                doc.getWordRangeAtPosition(start) ??
-                new vscode.Range(start, start.translate(0, calledName.length));
-            const toItem = new vscode.CallHierarchyItem(
+
+            // Calculate the absolute position in the document.
+            const absoluteOffset = bodyStartOffset + regexMatch.index;
+            const callPosition = document.positionAt(absoluteOffset);
+            const callRange = document.getWordRangeAtPosition(callPosition) ??
+                new vscode.Range(callPosition, callPosition.translate(0, calledFunctionName.length));
+
+            // Create a CallHierarchyItem for the callee.
+            const calleeItem = new vscode.CallHierarchyItem(
                 vscode.SymbolKind.Function,
-                calledName,
+                calledFunctionName,
                 '',
                 item.uri,
-                wordRange,
-                wordRange
+                callRange,
+                callRange
             );
-            results.push(new vscode.CallHierarchyOutgoingCall(toItem, [wordRange]));
+
+            // Add the outgoing call to results.
+            outgoingCallsList.push(new vscode.CallHierarchyOutgoingCall(calleeItem, [callRange]));
         }
-        return results;
+
+        return outgoingCallsList;
     }
 };
 
 /**
- * ACTIVATE — main entry
+ * Extension activation function.
+ * Called when the extension is activated (e.g., when the command is first invoked).
+ *
+ * @param context - The extension context provided by VS Code
  */
 export function activate(context: vscode.ExtensionContext) {
-    // Create an Output Channel to display logs for this extension.
-    const output = vscode.window.createOutputChannel('Call Hierarchy Debug');
-    // Immediately reveal the Output Channel so users can see progress.
-    output.show(true);
+    // Create an output channel for logging extension activity.
+    const outputChannel = vscode.window.createOutputChannel('Call Hierarchy Debug');
+    outputChannel.show(true);
 
-    // Register our custom Call Hierarchy provider for TypeScript and Python files.
-    context.subscriptions.push(
-        vscode.languages.registerCallHierarchyProvider(
-            { scheme: 'file', language: 'typescript' },
-            customProvider
-        )
-    );
+    // Register the custom call hierarchy provider for Python files.
     context.subscriptions.push(
         vscode.languages.registerCallHierarchyProvider(
             { scheme: 'file', language: 'python' },
@@ -285,133 +279,130 @@ export function activate(context: vscode.ExtensionContext) {
         )
     );
 
-    // Register the command that triggers the analysis and JSON export.
-    const disposable = vscode.commands.registerCommand(
+    // Register the command that analyzes call hierarchy and exports to JSON.
+    const commandDisposable = vscode.commands.registerCommand(
         'callHierarchyDemo.showCallHierarchy',
         async () => {
             try {
                 console.log('🚀 Command started - Show Call Hierarchy');
-                output.appendLine('🚀 Command started - Show Call Hierarchy');
+                outputChannel.appendLine('🚀 Command started - Show Call Hierarchy');
 
-                // Ensure there is an active editor with a file open.
-                const editor = vscode.window.activeTextEditor;
-                if (!editor) {
-                    const msg = 'Open a TypeScript file and put the cursor on a function name first.';
-                    console.log('❌ ' + msg);
-                    output.appendLine('❌ ' + msg);
-                    vscode.window.showInformationMessage(msg);
+                // Check if there's an active editor with a file open.
+                const activeEditor = vscode.window.activeTextEditor;
+                if (!activeEditor) {
+                    const errorMessage = 'Open a Python file and place the cursor on a function name first.';
+                    console.log('❌ ' + errorMessage);
+                    outputChannel.appendLine('❌ ' + errorMessage);
+                    vscode.window.showInformationMessage(errorMessage);
                     return;
                 }
 
-                // Log some context about where we're analyzing from.
-                console.log(`📄 Active file: ${editor.document.fileName}`);
-                console.log(`📍 Cursor position: ${editor.selection.active.line}:${editor.selection.active.character}`);
-                output.appendLine(`📄 Active file: ${editor.document.fileName}`);
-                output.appendLine(`📍 Cursor position: ${editor.selection.active.line}:${editor.selection.active.character}`);
+                // Log the current file and cursor position.
+                console.log(`📄 Active file: ${activeEditor.document.fileName}`);
+                console.log(`📍 Cursor position: ${activeEditor.selection.active.line}:${activeEditor.selection.active.character}`);
+                outputChannel.appendLine(`📄 Active file: ${activeEditor.document.fileName}`);
+                outputChannel.appendLine(`📍 Cursor position: ${activeEditor.selection.active.line}:${activeEditor.selection.active.character}`);
 
-                // Notify the user via a toast message as well.
+                // Show progress message to the user.
                 vscode.window.showInformationMessage('Analyzing call hierarchy...');
 
-                // Build the call hierarchy graph for the symbol under the cursor.
-                const result = await getCallHierarchy(editor.document, editor.selection.active);
-                if (!result) {
-                    const msg = 'No symbol or no provider found at the current position.';
-                    console.log('❌ ' + msg);
-                    output.appendLine('❌ ' + msg);
-                    vscode.window.showInformationMessage(msg);
+                // Get the call hierarchy for the symbol at the cursor.
+                const hierarchyResult = await getCallHierarchy(activeEditor.document, activeEditor.selection.active);
+                if (!hierarchyResult) {
+                    const errorMessage = 'No symbol or no provider found at the current position.';
+                    console.log('❌ ' + errorMessage);
+                    outputChannel.appendLine('❌ ' + errorMessage);
+                    vscode.window.showInformationMessage(errorMessage);
                     return;
                 }
 
                 console.log('✅ Call hierarchy data retrieved successfully');
-                output.appendLine('✅ Call hierarchy data retrieved successfully');
+                outputChannel.appendLine('✅ Call hierarchy data retrieved successfully');
 
-                // Assemble a minimal JSON shape with the symbol and edge lists.
                 // Convert file URIs to workspace-relative paths for portability.
-                const toRel = (uri: vscode.Uri) => vscode.workspace.asRelativePath(uri, false);
-                const data = {
-                    function: result.function.name,
-                    uri: toRel(result.function.uri),
-                    line: result.function.range.start.line + 1,
-                    incoming: result.callers?.map(c => ({
-                        from: c.from.name,
-                        uri: toRel(c.from.uri),
-                        line: c.fromRanges[0].start.line + 1
+                const toRelativePath = (uri: vscode.Uri) => vscode.workspace.asRelativePath(uri, false);
+
+                // Build the JSON data structure with the function and its relationships.
+                const callHierarchyData = {
+                    function: hierarchyResult.function.name,
+                    current_file: toRelativePath(hierarchyResult.function.uri),
+                    line: hierarchyResult.function.range.start.line + 1,
+                    incoming: hierarchyResult.callers?.map(caller => ({
+                        from: caller.from.name,
+                        file_path: toRelativePath(caller.from.uri),
+                        line: caller.fromRanges[0].start.line + 1
                     })) || [],
-                    outgoing: result.callees?.map(c => ({
-                        to: c.to.name,
-                        uri: toRel(c.to.uri),
-                        line: c.fromRanges[0].start.line + 1
+                    outgoing: hierarchyResult.callees?.map(callee => ({
+                        to: callee.to.name,
+                        file_path: toRelativePath(callee.to.uri),
+                        line: callee.fromRanges[0].start.line + 1
                     })) || []
                 };
 
-                console.log('📊 Generated data:', data);
-                output.appendLine('📊 Generated data:');
-                output.appendLine(JSON.stringify(data, null, 2));
+                console.log('📊 Generated data:', callHierarchyData);
+                outputChannel.appendLine('📊 Generated data:');
+                outputChannel.appendLine(JSON.stringify(callHierarchyData, null, 2));
 
-                // write to file
-                // We save to ".vscode/callHierarchy.json" in the first workspace folder.
+                // Save the call hierarchy data to a JSON file.
                 const workspaceFolders = vscode.workspace.workspaceFolders;
                 if (workspaceFolders && workspaceFolders.length > 0) {
                     try {
-                        // Ensure the ".vscode" directory exists.
-                        const dirUri = vscode.Uri.joinPath(workspaceFolders[0].uri, '.vscode');
-                        console.log(`📁 Creating directory: ${dirUri.fsPath}`);
-                        output.appendLine(`📁 Creating directory: ${dirUri.fsPath}`);
-                        
-                        await vscode.workspace.fs.createDirectory(dirUri);
-                        
-                        // Create a file URI for the JSON and write the content.
-                        const fileUri = vscode.Uri.joinPath(dirUri, 'callHierarchy.json');
-                        console.log(`💾 Writing file: ${fileUri.fsPath}`);
-                        output.appendLine(`💾 Writing file: ${fileUri.fsPath}`);
-                        
-                        await vscode.workspace.fs.writeFile(
-                            fileUri,
-                            Buffer.from(JSON.stringify(data, null, 2))
-                        );
-                        
-                        const successMsg = `✅ Call hierarchy saved to ${fileUri.fsPath}`;
-                        console.log(successMsg);
-                        output.appendLine(successMsg);
-                        vscode.window.showInformationMessage(successMsg);
+                        // Ensure the .vscode directory exists.
+                        const vscodeDirectoryUri = vscode.Uri.joinPath(workspaceFolders[0].uri, '.vscode');
+                        console.log(`📁 Creating directory: ${vscodeDirectoryUri.fsPath}`);
+                        outputChannel.appendLine(`📁 Creating directory: ${vscodeDirectoryUri.fsPath}`);
+                        await vscode.workspace.fs.createDirectory(vscodeDirectoryUri);
 
-                        // Open the generated file
-                        const doc = await vscode.workspace.openTextDocument(fileUri);
-                        await vscode.window.showTextDocument(doc);
-                        
+                        // Write the JSON data to callHierarchy.json.
+                        const outputFileUri = vscode.Uri.joinPath(vscodeDirectoryUri, 'callHierarchy.json');
+                        console.log(`💾 Writing file: ${outputFileUri.fsPath}`);
+                        outputChannel.appendLine(`💾 Writing file: ${outputFileUri.fsPath}`);
+                        await vscode.workspace.fs.writeFile(
+                            outputFileUri,
+                            Buffer.from(JSON.stringify(callHierarchyData, null, 2))
+                        );
+
+                        const successMessage = `✅ Call hierarchy saved to ${outputFileUri.fsPath}`;
+                        console.log(successMessage);
+                        outputChannel.appendLine(successMessage);
+                        vscode.window.showInformationMessage(successMessage);
+
+                        // Open the generated JSON file in the editor.
+                        const generatedDocument = await vscode.workspace.openTextDocument(outputFileUri);
+                        await vscode.window.showTextDocument(generatedDocument);
+
                     } catch (fileError) {
-                        // Handle any filesystem errors and surface them to the user.
-                        const errorMsg = `❌ Error writing file: ${fileError}`;
-                        console.error(errorMsg);
-                        output.appendLine(errorMsg);
-                        vscode.window.showErrorMessage(errorMsg);
+                        const errorMessage = `❌ Error writing file: ${fileError}`;
+                        console.error(errorMessage);
+                        outputChannel.appendLine(errorMessage);
+                        vscode.window.showErrorMessage(errorMessage);
                     }
                 } else {
-                    // Without a workspace folder, we don't have a place to save the file.
-                    const warningMsg = '⚠️ No workspace folder open — cannot save callHierarchy.json.';
-                    console.log(warningMsg);
-                    output.appendLine(warningMsg);
-                    vscode.window.showWarningMessage(warningMsg);
+                    const warningMessage = '⚠️ No workspace folder open — cannot save callHierarchy.json.';
+                    console.log(warningMessage);
+                    outputChannel.appendLine(warningMessage);
+                    vscode.window.showWarningMessage(warningMessage);
                 }
 
-                // log to Output
-                // Final delimiter in the output channel to mark completion.
-                output.appendLine('--- Call Hierarchy Analysis Complete ---');
-                output.show(true);
+                // Mark completion in the output channel.
+                outputChannel.appendLine('--- Call Hierarchy Analysis Complete ---');
+                outputChannel.show(true);
 
             } catch (error) {
-                // Catch any unexpected errors from the overall command handler.
-                const errorMsg = `❌ Unexpected error: ${error}`;
-                console.error(errorMsg);
-                output.appendLine(errorMsg);
-                vscode.window.showErrorMessage(errorMsg);
+                const errorMessage = `❌ Unexpected error: ${error}`;
+                console.error(errorMessage);
+                outputChannel.appendLine(errorMessage);
+                vscode.window.showErrorMessage(errorMessage);
             }
         }
     );
 
-    // Ensure the command is disposed when the extension is deactivated.
-    context.subscriptions.push(disposable);
+    context.subscriptions.push(commandDisposable);
 }
 
-// This extension doesn't need to perform any teardown work.
+/**
+ * Extension deactivation function.
+ * Called when the extension is deactivated.
+ * No cleanup needed for this extension.
+ */
 export function deactivate() {}

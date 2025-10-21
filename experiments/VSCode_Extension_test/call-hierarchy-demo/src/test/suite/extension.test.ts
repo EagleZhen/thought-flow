@@ -14,7 +14,7 @@ suite('Python Call Hierarchy Extension Test Suite', () => {
 
 	test('Command should be registered', async () => {
 		const commands = await vscode.commands.getCommands(true);
-		assert.ok(commands.includes('callHierarchyDemo.showCallHierarchy'),
+		assert.ok(commands.includes('callHierarchyDemo.showCallHierarchy'), 
 			'The showCallHierarchy command should be registered');
 	});
 

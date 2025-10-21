@@ -1,71 +1,100 @@
-# call-hierarchy-demo README
+# Python Call Hierarchy Demo
 
-This is the README for your extension "call-hierarchy-demo". After writing up a brief description, we recommend including the following sections.
+A VS Code extension that analyzes and exports Python function call hierarchies to JSON format.
 
 ## Features
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+- **Analyze Python Call Relationships**: Place your cursor on any Python function/method and get a complete analysis of:
+  - **Incoming calls**: Which functions call this function
+  - **Outgoing calls**: Which functions this function calls
+- **JSON Export**: Automatically saves the call hierarchy to `.vscode/callHierarchy.json`
+- **Workspace-relative paths**: All file paths are relative to your workspace for portability
+- **Custom Call Hierarchy Provider**: Includes a regex-based provider for Python files
 
-For example if there is an image subfolder under your extension project workspace:
+## Usage
 
-\!\[feature X\]\(images/feature-x.png\)
+1. Open a Python file in VS Code
+2. Place your cursor on a function or method name
+3. Trigger the analysis using one of these methods:
+   - **Command Palette** (`Cmd+Shift+P` / `Ctrl+Shift+P`): Type "Show Python Call Hierarchy"
+   - **Keyboard Shortcut**: `Cmd+Shift+H` (Mac) or `Ctrl+Shift+H` (Windows/Linux)
+   - **Right-click Context Menu**: Select "Show Python Call Hierarchy"
 
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+The extension will analyze the call hierarchy and save the results to `.vscode/callHierarchy.json` in your workspace.
+
+## Output Format
+
+The generated JSON file includes:
+
+```json
+{
+  "function": "function_name",
+  "current_file": "relative/path/to/file.py",
+  "line": 10,
+  "incoming": [
+    {
+      "from": "caller_function",
+      "file_path": "relative/path/to/caller.py",
+      "line": 5
+    }
+  ],
+  "outgoing": [
+    {
+      "to": "called_function",
+      "file_path": "relative/path/to/called.py",
+      "line": 20
+    }
+  ]
+}
+```
 
 ## Requirements
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+- VS Code version 1.85.0 or higher
+- Python extension for VS Code (for best results with language server features)
 
-## Extension Settings
+## How It Works
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
+The extension uses two approaches to analyze Python call hierarchies:
 
-For example:
+1. **VS Code's Built-in Call Hierarchy API**: Uses the language server protocol to get accurate call hierarchy information
+2. **Custom Regex-based Provider**: A fallback provider that scans Python files using regex patterns to find function calls
 
-This extension contributes the following settings:
+### Python Function Body Detection
 
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
+The extension identifies function bodies using Python's indentation rules:
+- Finds the function definition line
+- Measures the indentation of the first line in the body
+- Continues until it finds a line with less indentation
+- All lines with equal or greater indentation are considered part of the function body
 
-## Known Issues
+## Known Limitations
 
-Calling out known issues can help limit users opening duplicate issues against your extension.
+- The regex-based provider is simple and may not catch all edge cases (e.g., calls within strings, comments)
+- Multi-line function calls may not be detected accurately
+- Dynamic function calls (e.g., `getattr()`, `exec()`) are not analyzed
+
+## Development
+
+To run the extension in development mode:
+
+1. Clone the repository
+2. Run `npm install` to install dependencies
+3. Press `F5` to launch the Extension Development Host
+4. Open a Python file and test the extension
+
+To compile: `npm run compile`
 
 ## Release Notes
 
-Users appreciate release notes as you update your extension.
+### 0.0.1
 
-### 1.0.0
-
-Initial release of ...
-
-### 1.0.1
-
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
+Initial release:
+- Python call hierarchy analysis
+- JSON export functionality
+- Custom call hierarchy provider
+- Keyboard shortcuts and context menu integration
 
 ---
 
-## Following extension guidelines
-
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
-
-* [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
-
-## Working with Markdown
-
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
-
-## For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
-
-**Enjoy!**
+**Enjoy analyzing your Python code!**
