@@ -13,12 +13,14 @@ ThoughtFlow analyzes Python code and generates interactive call graphs, making i
     - `extension.ts` - Extension activation, command registration, orchestration
     - `analyzer.ts` - Code analysis using VS Code LSP
     - `graph.ts` - Graph visualization with Cytoscape.js
+    - `license.ts` - User and license management
     - `types.ts` - Shared type definitions
     - `templates/` - HTML/CSS/JS templates for webview
   - `dist/` - Production build output (Webpack)
   - `out/` - Development build output (tests)
 - `docs/` - Documentation
 - `experiments/` - Sandbox for prototyping new approaches
+- `license-service/` - Backend API for user and license management (to be implemented)
 - `llm-service/` - Optional LLM integration (future)
 - `test-workspace/` - Sample Python projects for testing the extension
 
