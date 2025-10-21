@@ -9,12 +9,17 @@ ThoughtFlow analyzes Python code and generates interactive call graphs, making i
 ## Project Structure
 
 - `extension/` - VS Code extension (TypeScript)
-- `core/` - Core analysis logic (TypeScript)
-- `llm-service/` - Optional LLM integration (Python)
-- `experiments/` - Prototypes and explorations
-- `examples/` - Sample Python codebases for testing
+  - `src/` - Source code (supports `@/*` path aliases)
+    - `extension.ts` - Extension activation, command registration, orchestration
+    - `analyzer.ts` - Code analysis using VS Code LSP
+    - `graph.ts` - Graph visualization with Cytoscape.js
+    - `types.ts` - Shared type definitions
+    - `templates/` - HTML/CSS/JS templates for webview
+  - `dist/` - Production build output (Webpack)
+  - `out/` - Development build output (tests)
+- `experiments/` - Sandbox for prototyping new approaches
+- `llm-service/` - Optional LLM integration (future)
 - `docs/` - Documentation
-- `scripts/` - Build and setup scripts
 
 ## Getting Started
 
