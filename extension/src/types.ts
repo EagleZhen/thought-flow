@@ -1,15 +1,23 @@
 /**
  * Reference to a function in the codebase.
- * filePath + name + line uniquely identify a function.
  */
 export interface FunctionCall {
-  /** Function name. Example: "greet", "main" */
+  /**
+   * Function name
+   * @example "greet", "main"
+   */
   name: string;
 
-  /** File path relative to workspace. Example: "main.py", "src/utils.py" */
+  /**
+   * File path relative to workspace
+   * @example "main.py", "src/utils.py"
+   */
   filePath: string;
 
-  /** Line number (1-indexed) */
+  /**
+   * Line number (1-indexed)
+   * @example 5, 42
+   */
   line: number;
 }
 
@@ -34,16 +42,16 @@ export interface CallHierarchy {
 export interface CytoscapeNode {
   data: {
     /**
-     * Unique identifier (format: name @ filePath:line)
-     * Used internally for graph operations and edge connections
-     * Example: "greet @ main.py:5", "helper @ src/utils.py:10"
+     * Unique identifier (format: name @ filePath:line).
+     * Used internally for graph operations and edge connections.
+     * @example "greet @ main.py:5", "helper @ src/utils.py:10"
      */
     id: string;
 
     /**
-     * Display label shown on the graph node
-     * Typically just the function name for readability
-     * Example: "greet", "helper"
+     * Display label shown on the graph node.
+     * Typically just the function name for readability.
+     * @example "greet", "helper"
      */
     label: string;
   };
