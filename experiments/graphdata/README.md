@@ -1,3 +1,19 @@
+## 21 Oct Update
+
+* Now a new webview dir for UI.
+* Refactor the way of linking nodestr and edgestr manually in extension.ts, to avoid ', ' after each element, which will result in invalid json input for my UI part.
+
+### Guide on Running
+```
+cd path_to_thought-flow/experiments/graphdata
+# Plz make sure u r not in a outside dir, or vscode couldn't recognize which part to run since experiment dir has conflict with outside dir
+npm run compile
+# Open the **root `thought-flow` folder** in VS Code.
+# Press `F5` to start a new debugging session. This will open a new "Extension Development Host" window.
+# In the new window, press `Cmd+Shift+P` (macOS) or `Ctrl+Shift+P` (Windows) to open the Command Palette.
+# Type and select the **`Run Code Graph`** command.
+```
+
 ## 17 Oct Update
 
 * extension.ts: line 1 - line 59 includes analysing callHierarchy.json and outputting "elements" as an input string for cytoscape.js
