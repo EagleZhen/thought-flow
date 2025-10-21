@@ -116,7 +116,7 @@ const customProvider: vscode.CallHierarchyProvider = {
      * Searches all Python files to find where the target function is called.
      */
     async provideCallHierarchyIncomingCalls(
-        item: vscode.CallHierarchyItem,
+        item: vscode.CallHierarchyItem, // item represents the target function or variable
     ) {
         const results: vscode.CallHierarchyIncomingCall[] = [];
         const targetName = item.name;
