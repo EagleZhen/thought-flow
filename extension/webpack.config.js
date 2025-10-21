@@ -3,6 +3,7 @@
 'use strict';
 
 const path = require('path');
+const CopyWebpackPlugin = require('copy-webpack-plugin');
 
 //@ts-check
 /** @typedef {import('webpack').Configuration} WebpackConfig **/
@@ -25,7 +26,10 @@ const extensionConfig = {
   },
   resolve: {
     // support reading TypeScript and JavaScript files, 📖 -> https://github.com/TypeStrong/ts-loader
-    extensions: ['.ts', '.js']
+    extensions: ['.ts', '.js'],
+    alias: {
+      '@': path.resolve(__dirname, 'src')
+    }
   },
   module: {
     rules: [
@@ -44,5 +48,12 @@ const extensionConfig = {
   infrastructureLogging: {
     level: "log", // enables logging required for problem matchers
   },
+  plugins: [
+    new CopyWebpackPlugin({
+      patterns: [
+        { from: 'src/templates', to: 'templates' }
+      ]
+    })
+  ]
 };
 module.exports = [ extensionConfig ];

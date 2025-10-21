@@ -8,23 +8,38 @@ ThoughtFlow analyzes Python code and generates interactive call graphs, making i
 
 ## Project Structure
 
-- `extension/` - VS Code extension (TypeScript)
-- `core/` - Core analysis logic (TypeScript)
-- `llm-service/` - Optional LLM integration (Python)
-- `experiments/` - Prototypes and explorations
-- `examples/` - Sample Python codebases for testing
 - `docs/` - Documentation
-- `scripts/` - Build and setup scripts
+- `experiments/` - Sandbox for prototyping new approaches
+- `extension/` - VS Code extension (TypeScript)
+  - `src/` - Source code (supports `@/*` path aliases)
+    - `extension.ts` - Extension activation, command registration, orchestration
+    - `analyzer.ts` - Code analysis using VS Code LSP
+    - `graph.ts` - Graph visualization with Cytoscape.js
+    - `license.ts` - User and license management
+    - `types.ts` - Shared type definitions
+    - `templates/` - HTML/CSS/JS templates for webview
+  - `dist/` - Production build output (Webpack)
+  - `out/` - Development build output (tests)
+- `license-service/` - Backend API for user and license management (to be implemented)
+- `llm-service/` - Optional LLM integration (future)
+- `test-workspace/` - Sample Python projects for testing the extension
 
 ## Getting Started
 
-**Prerequisites:** VS Code, Node.js, Python 3.10+
+**Prerequisites:** VS Code, Node.js
 
 **Setup:**
 
-1. Clone the repository and open in VS Code
-2. Install recommended extensions (VS Code will prompt automatically)
-3. Code auto-formats on save - test by messing with the files in `experiments/test-formatting/`
+1. Clone and open in VS Code
+2. Install dependencies: `cd extension && npm install`
+3. Press `F5` → Select **"VS Code Extension Development"**
+4. In the new Extension Development Host window, open a Python project (or use `test-workspace/`)
+5. Click on a function, then:
+   - Right-click → **"Show Python Call Hierarchy"**, or
+   - Press `Cmd+Shift+H` / `Ctrl+Shift+H`, or
+   - `Cmd+Shift+P` / `Ctrl+Shift+P` → **"Show Python Call Hierarchy"**
+
+Code auto-formats on save (Prettier for TS/JS). Feel free to mess with the codes in `experiments/test-formatting/`.
 
 ## Course Project
 
