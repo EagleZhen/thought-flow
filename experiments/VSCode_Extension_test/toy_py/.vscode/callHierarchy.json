@@ -1,29 +1,20 @@
 {
-  "function": "run",
-  "current_file": "app.py",
-  "line": 4,
+  "function": "helper_branch",
+  "current_file": "branching.py",
+  "line": 6,
   "incoming": [
     {
-      "from": "run",
-      "file_path": "app.py",
+      "from": "pick_max",
+      "caller_line": 1,
+      "file_path": "branching.py",
       "line": 4
     },
     {
-      "from": "run",
-      "file_path": "app.py",
-      "line": 12
+      "from": "pick_max",
+      "caller_line": 1,
+      "file_path": "branching.py",
+      "line": 6
     }
   ],
-  "outgoing": [
-    {
-      "to": "add",
-      "file_path": "app.py",
-      "line": 6
-    },
-    {
-      "to": "mul",
-      "file_path": "app.py",
-      "line": 7
-    }
-  ]
+  "outgoing": []
 }
