@@ -1,100 +1,104 @@
-# Python Call Hierarchy Demo
+## Call Hierarchy Demo
 
-A VS Code extension that analyzes and exports Python function call hierarchies to JSON format.
+Call Hierarchy Demo is a small Visual Studio Code extension that analyzes the call hierarchy for a symbol in the active editor and saves the result to a JSON file. It's intended as a compact demo of using the VS Code extension API to inspect call relationships and export them for analysis or tooling.
+
+Key points:
+
+- Command: `callHierarchyDemo.showCallHierarchy`
+- Default keybinding: Ctrl+Shift+H (Cmd+Shift+H on macOS)
+- Context menu entry in the editor for TypeScript and Python files
+
+---
 
 ## Features
 
-- **Analyze Python Call Relationships**: Place your cursor on any Python function/method and get a complete analysis of:
-  - **Incoming calls**: Which functions call this function
-  - **Outgoing calls**: Which functions this function calls
-- **JSON Export**: Automatically saves the call hierarchy to `.vscode/callHierarchy.json`
-- **Workspace-relative paths**: All file paths are relative to your workspace for portability
-- **Custom Call Hierarchy Provider**: Includes a regex-based provider for Python files
+- Inspect call hierarchy for the symbol under the cursor.
+- Export the discovered call graph to a JSON file in the workspace (file name: `callHierarchy.json`).
+- Quick access from the Command Palette, editor context menu (TypeScript/Python), or the default keybinding.
+
+## Requirements
+
+- Visual Studio Code compatible with API version ^1.85.0 (see `package.json`).
+- No additional external dependencies are required to use the extension.
+
+## Installation
+
+Install from the VS Code Marketplace (when published) or run locally during development:
+
+1. Clone this repository.
+2. Install dependencies:
+
+```powershell
+npm install
+```
+
+3. Build the extension:
+
+```powershell
+npm run compile
+```
+
+4. Launch the extension for development: open this folder in VS Code, press F5 (Run Extension) to open a new Extension Development Host window.
 
 ## Usage
 
-1. Open a Python file in VS Code
-2. Place your cursor on a function or method name
-3. Trigger the analysis using one of these methods:
-   - **Command Palette** (`Cmd+Shift+P` / `Ctrl+Shift+P`): Type "Show Python Call Hierarchy"
-   - **Keyboard Shortcut**: `Cmd+Shift+H` (Mac) or `Ctrl+Shift+H` (Windows/Linux)
-   - **Right-click Context Menu**: Select "Show Python Call Hierarchy"
+- Open a Python file in the editor.
+- Place the cursor on a function / method / symbol you want to analyze.
+- Run the command from the Command Palette: `> Show Call Hierarchy` (or use the keybinding `Ctrl+Shift+H`).
+- Alternatively, right-click in the editor and choose `Show Call Hierarchy` from the context menu (appears for TypeScript and Python files).
+- After the analysis finishes a JSON file will be created in the workspace root with a name like `callHierarchy.json` containing the exported call structure.
 
-The extension will analyze the call hierarchy and save the results to `.vscode/callHierarchy.json` in your workspace.
-
-## Output Format
-
-The generated JSON file includes:
+Example JSON shape (simplified):
 
 ```json
 {
-  "function": "function_name",
-  "current_file": "relative/path/to/file.py",
-  "line": 10,
+  "function": "choose_op",
+  "current_file": "app.py",
+  "line": 20,
   "incoming": [
     {
-      "from": "caller_function",
-      "file_path": "relative/path/to/caller.py",
-      "line": 5
+      "from": "run",
+      "caller_line": 18,
+      "file_path": "app.py",
+      "line": 20
+    },
+    {
+      "from": "run",
+      "caller_line": 18,
+      "file_path": "app.py",
+      "line": 21
+    },
+    {
+      "from": "run",
+      "caller_line": 18,
+      "file_path": "app.py",
+      "line": 22
     }
   ],
   "outgoing": [
     {
-      "to": "called_function",
-      "file_path": "relative/path/to/called.py",
-      "line": 20
+      "to": "add",
+      "file_path": "app.py",
+      "line": 10
+    },
+    {
+      "to": "mul",
+      "file_path": "app.py",
+      "line": 12
     }
   ]
 }
 ```
 
-## Requirements
-
-- VS Code version 1.85.0 or higher
-- Python extension for VS Code (for best results with language server features)
-
-## How It Works
-
-The extension uses two approaches to analyze Python call hierarchies:
-
-1. **VS Code's Built-in Call Hierarchy API**: Uses the language server protocol to get accurate call hierarchy information
-2. **Custom Regex-based Provider**: A fallback provider that scans Python files using regex patterns to find function calls
-
-### Python Function Body Detection
-
-The extension identifies function bodies using Python's indentation rules:
-- Finds the function definition line
-- Measures the indentation of the first line in the body
-- Continues until it finds a line with less indentation
-- All lines with equal or greater indentation are considered part of the function body
-
-## Known Limitations
-
-- The regex-based provider is simple and may not catch all edge cases (e.g., calls within strings, comments)
-- Multi-line function calls may not be detected accurately
-- Dynamic function calls (e.g., `getattr()`, `exec()`) are not analyzed
+Where `caller_line` is the line of starting position of caller and `line` is the exact location where the clicked function is called
 
 ## Development
 
-To run the extension in development mode:
+- Useful npm scripts (see `package.json`):
 
-1. Clone the repository
-2. Run `npm install` to install dependencies
-3. Press `F5` to launch the Extension Development Host
-4. Open a Python file and test the extension
+	- `npm run compile` — compile TypeScript sources to `out/`.
 
-To compile: `npm run compile`
+- Debugging in VS Code:
 
-## Release Notes
-
-### 0.0.1
-
-Initial release:
-- Python call hierarchy analysis
-- JSON export functionality
-- Custom call hierarchy provider
-- Keyboard shortcuts and context menu integration
-
----
-
-**Enjoy analyzing your Python code!**
+	1. Press F5 to open the Extension Development Host.
+	2. Use the Run view to attach breakpoints in `src/` and inspect behavior.
