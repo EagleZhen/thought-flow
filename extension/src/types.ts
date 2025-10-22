@@ -1,3 +1,7 @@
+// =============================================================================
+// Domain Model - Call Hierarchy Analysis (Backend/Analyzer Output)
+// =============================================================================
+
 /**
  * Reference to a function in the codebase.
  */
@@ -38,6 +42,10 @@ export interface CallHierarchy {
   /** Outgoing calls (functions called by the target) */
   outgoing: FunctionCall[];
 }
+
+// =============================================================================
+// Visualization Model - Cytoscape Graph (Frontend/Graph Input)
+// =============================================================================
 
 /**
  * A node in the Cytoscape graph.
