@@ -29,7 +29,7 @@ function initializeCytoscape(graphData) {
           selector: "node", // Style for all nodes
           style: {
             "background-color": "#666",
-            label: "data(label)" || "data(id)", // Use 'label' if available, otherwise 'id'
+            label: "data(label) data(id)", // Use 'label' if available, otherwise 'id'
           },
         },
         {
@@ -39,7 +39,7 @@ function initializeCytoscape(graphData) {
             "background-color": "#ccc",
             "border-color": "#999",
             "border-width": 2,
-            label: "data(label)" || "data(id)", // Use 'label' if available, otherwise 'id'
+            label: "data(label) data(id)", // Use 'label' if available, otherwise 'id'
             "text-valign": "top",
             "text-halign": "center",
           },
