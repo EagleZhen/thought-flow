@@ -4,7 +4,7 @@ from calculator.utils import add
 
 def main():
     sum = add(2, 3)
-    fact = factorial(5)
+    fact = factorial(sum)
     print(f"{sum}! = {fact}")
 
 
