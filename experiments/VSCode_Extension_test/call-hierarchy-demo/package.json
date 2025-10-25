@@ -1,0 +1,58 @@
+{
+  "name": "call-hierarchy-demo",
+  "displayName": "Python Call Hierarchy Demo",
+  "description": "A VSCode extension that analyzes and saves Python call hierarchies to JSON.",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:callHierarchyDemo.showCallHierarchy"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "callHierarchyDemo.showCallHierarchy",
+        "title": "Show Python Call Hierarchy",
+        "category": "Python Call Hierarchy"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "callHierarchyDemo.showCallHierarchy",
+        "key": "ctrl+shift+h",
+        "mac": "cmd+shift+h",
+        "when": "editorTextFocus"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "callHierarchyDemo.showCallHierarchy",
+          "when": "resourceLangId == python",
+          "group": "navigation"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint src --ext ts",
+    "test": "npm run compile && node ./out/test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "@vscode/test-electron": "^2.5.2",
+    "eslint": "^8.54.0",
+    "mocha": "^11.7.4",
+    "typescript": "^5.3.0"
+  }
+}

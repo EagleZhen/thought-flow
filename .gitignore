@@ -53,3 +53,5 @@ __pycache__/
 .Trashes
 ehthumbs.db
 Thumbs.db
+experiments/VSCode_Extension_test/call-hierarchy-demo/out/extension.js
+experiments/VSCode_Extension_test/call-hierarchy-demo/out/extension.js.map
