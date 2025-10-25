@@ -1,10 +1,5 @@
 import * as fs from 'fs';
-import * as path from 'path';
-
-//const graphdata = require('./callHierarchy.json')
-// import * as graphdata from './callHierarchy.json';
-import graphdata from '../callHierarchy.json' with { type: "json" }; //
-// import graphdata from './callHierarchy.json';
+import { sampleInput } from './sampleinput';
 
 // --- Data processing logic moved inside 'activate' function ---
 
@@ -38,13 +33,15 @@ export function activate(context: vscode.ExtensionContext) { //
         );
 
         // var data = ""; // // Not strictly needed anymore // [REMOVED]
-        try{ //
+        try{
             // --- Modification Start ---
             // Data processing logic moved inside the try...catch block
-            const baseid = graphdata.uri.replace(/(\/|\.)/gm, "_") + '_' +graphdata.function; //
-            // console.log(`cid = ${ baseid }`);
-            const baselabel = baseid; //
-            // console.log(`clabel = ${ baselabel }`);
+            
+            // id: pack the information to form a unique id; not for display
+            const baseid = sampleInput.target.filePath.replace(/(\/|\.)/gm, "_") + sampleInput.target.line + sampleInput.target.name;
+            
+            // label: for display
+            const baselabel = sampleInput.target.filePath + ' line' + sampleInput.target.line + ' ' + sampleInput.target.name;
 
             const nodesArray: any[] = []; // Use an array to store node objects
             const edgesArray: any[] = []; // Use an array to store edge objects
@@ -63,10 +60,13 @@ export function activate(context: vscode.ExtensionContext) { //
             var label = ''; // Define label here
 
             // Process incoming edges and nodes
-            for (const item of graphdata.incoming){ //
-                id = (item as any).uri.replace(/(\/|\.)/gm, "_") + '_line' + (item as any).line; //
-                // console.log(id);
-                label = (item as any).uri + ' line' + (item as any).line; //
+            for (const item of sampleInput.incoming){
+
+                // id: pack the information to form a unique id; not for display
+                id = item.filePath.replace(/(\/|\.)/gm, "_") + item.line + item.name;
+
+                // label: for display
+                label = item.filePath + ' line' + item.line + ' ' + item.name;
 
                 // If the node hasn't been added, add it to the array
                 if(!addedNodeIds.has(id)){ //
@@ -88,11 +88,13 @@ export function activate(context: vscode.ExtensionContext) { //
             }
 
             // Process outgoing edges and nodes
-            for (const item of graphdata.outgoing){ //
-                // id = (item as any).uri.replace(/(\/|\.)/gm, "_") + '_line' + (item as any).line + '_' + (item as any).uri.to(/(\/|\.)/gm, "_");
-                id = (item as any).uri.replace(/(\/|\.)/gm, "_") + '_' + (item as any).to; //
-                // console.log(id);
-                label = (item as any).uri + ' line' + (item as any).line; //
+            for (const item of sampleInput.outgoing){ //
+
+                // id: pack the information to form a unique id; not for display
+                id = item.filePath.replace(/(\/|\.)/gm, "_") + item.line + item.name;
+
+                // label: for display
+                label = item.filePath + ' line' + item.line + ' ' + item.name;
 
                 // If the node hasn't been added, add it to the array
                 if(!addedNodeIds.has(id)){ //
@@ -145,6 +147,8 @@ export function activate(context: vscode.ExtensionContext) { //
             htmlContent = htmlContent.replace('${scriptUri}', scriptUri.toString()); //
 
             panel.webview.html = htmlContent; //
+
+            console.log( htmlContent );
         }
         catch (error){ //
             // Log errors to the output channel and notify the user

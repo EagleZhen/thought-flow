@@ -1,3 +1,8 @@
+## 25 Oct Update
+
+* extension.ts: obtain input from 'sampleinput.ts' constructed based on 'types.ts'
+* graphScript.js: fixed node label display issue; minor change on display style
+
 ## 21 Oct Update
 
 * Now a new webview dir for UI.
