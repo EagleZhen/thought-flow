@@ -1,237 +1,29 @@
 /******/ (() => { // webpackBootstrap
 /******/ 	"use strict";
 /******/ 	var __webpack_modules__ = ([
-/* 0 */
-/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
-
-
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.activate = activate;
-exports.deactivate = deactivate;
-//const graphdata = require('./callHierarchy.json')
-// import * as graphdata from './callHierarchy.json';
-const callHierarchy_json_1 = __importDefault(__webpack_require__(Object(function webpackMissingModule() { var e = new Error("Cannot find module '../callHierarchy.json'"); e.code = 'MODULE_NOT_FOUND'; throw e; }())));
-// import graphdata from './callHierarchy.json';
-const baseid = callHierarchy_json_1.default.uri.replace(/(\/|\.)/gm, "_") + '_' + callHierarchy_json_1.default.function;
-// console.log(`cid = ${ baseid }`);
-const baselabel = baseid;
-// console.log(`clabel = ${ baselabel }`);
-var nodestr = '[';
-var edgestr = '[';
-nodestr += `{
-            "data": {
-                "id": "${baseid}",
-                "label": "${baselabel}",
-            }
-        }, `;
-var nodes = [];
-nodes.push(baseid);
-var id = '';
-var label = '';
-for (const item of callHierarchy_json_1.default.incoming) {
-    id = item.uri.replace(/(\/|\.)/gm, "_") + '_line' + item.line;
-    // console.log(id);
-    label = item.uri + ' line' + item.line;
-    if (!(nodes.includes(id))) {
-        nodestr += `{
-            "data": {
-                "id": "${id}",
-                "label": "${label}",
-            }
-        },`;
-        nodes.push(id);
-    }
-    edgestr += `{"data": {"source": "${id}", "target": "${baseid}"}}, `;
-}
-for (const item of callHierarchy_json_1.default.outgoing) {
-    // id = (item as any).uri.replace(/(\/|\.)/gm, "_") + '_line' + (item as any).line + '_' + (item as any).uri.to(/(\/|\.)/gm, "_");
-    id = item.uri.replace(/(\/|\.)/gm, "_") + '_' + item.to;
-    // console.log(id);
-    label = item.uri + ' line' + item.line;
-    if (!(nodes.includes(id))) {
-        nodestr += `{
-            "data": {
-                "id": "${id}",
-                "label": "${label}",
-            }
-        },`;
-        nodes.push(id);
-    }
-    edgestr += `{"data": {"source": "${baseid}", "target": "${id}"}}, `;
-}
-nodestr += ']';
-edgestr += ']';
-const elements = `{"nodes": ${nodestr}, "edges": ${edgestr}}`;
-console.log(elements);
-// below is for testing validity of ${ elements }, simply replace with latest ui stuffs
-const vscode = __importStar(__webpack_require__(1));
-const util = __webpack_require__(3);
-function activate(context) {
-    let disposable = vscode.commands.registerCommand('graph.run', () => {
-        const panel = vscode.window.createWebviewPanel('codeGraphPanel', // Internal ID for the webview panel
-        'Code Graph', // Title of the panel displayed to the user
-        vscode.ViewColumn.One, // Show the new webview panel in the first editor column
-        {
-            // Enable javascript in the webview
-            enableScripts: true
-        });
-        var data = "";
-        try {
-            data = elements;
-            console.log(`data = ${data}`);
-            console.log(drawGraph(data));
-            // Set the HTML content for the webview panel
-            panel.webview.html = drawGraph(data);
-        }
-        catch (error) {
-            console.log(error);
-        }
-    });
-    context.subscriptions.push(disposable);
-}
-// This method is called when your extension is deactivated
-function deactivate() { }
-/**
- * Returns the HTML content for the webview panel.
- * This contains the CSS, the Cytoscape.js library, and the script to fetch and render the graph.
- */
-function drawGraph(data) {
-    return `<!DOCTYPE html>
-    <html lang="en">
-    <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Code Graph</title>
-
-      <script src="https://unpkg.com/cytoscape@3.26.0/dist/cytoscape.min.js"></script>
-      
-      <style>
-        body { margin: 0; padding: 0; overflow: hidden; }
-        #cy {
-          width: 100vw; /* 100% of viewport width */
-          height: 100vh; /* 100% of viewport height */
-          display: block;
-          position: absolute;
-          top: 0;
-          left: 0;
-        }
-      </style>
-    </head>
-    <body>
-      <div id="cy"></div>
-
-      <script>
-        var data = ${data};
-        initializeCytoscape(data);
-
-        /**
-         * This function initializes the Cytoscape graph with the provided data.
-         * @param {object} data - The graph data from the server, expected format: { elements: [...] }
-         */
-        function initializeCytoscape(data) {
-
-          const cy = cytoscape({
-            container: document.getElementById('cy'),
-            elements: data,
-            style: [
-              { 
-                selector: 'node', 
-                style: {
-                  'background-color': '#666', 
-                  'label': 'data(id)'
-                }
-              },
-              {
-                selector: 'node:parent', // Style for parent nodes
-                style: {
-                  'background-opacity': 0.3,
-                  'background-color': '#ccc',
-                  'border-color': '#999',
-                  'border-width': 2,
-                  'label': 'data(label)'
-                }
-              },
-              { 
-                selector: 'edge', 
-                style: { 
-                  'width': 3, 
-                  'line-color': '#ccc', 
-                  'target-arrow-color': '#ccc', 
-                  'target-arrow-shape': 'triangle', 
-                  'curve-style': 'bezier' 
-                }
-              }
-            ],
-            layout: { 
-              name: 'cose', 
-              idealEdgeLength: 100, 
-              nodeOverlap: 20, 
-              fit: true, 
-              padding: 30 
-            }
-          });
-
-          // Add a click listener to the nodes for future interactivity
-          cy.on('tap', 'node', function(evt){
-            const node = evt.target;
-            console.log('Tapped node: ' + node.id());
-            // You can add more interactive features here
-          });
-        }
-      </script>
-    </body>
-    </html>`;
-}
-
-
-/***/ }),
+/* 0 */,
 /* 1 */
 /***/ ((module) => {
 
-module.exports = require("vscode");
+module.exports = require("fs");
 
 /***/ }),
-/* 2 */,
+/* 2 */
+/***/ ((module) => {
+
+module.exports = /*#__PURE__*/JSON.parse('{"function":"run","uri":"toy_py/app.py","line":4,"incoming":[{"from":"run","uri":"toy_py/app.py","line":4},{"from":"run","uri":"toy_py/app.py","line":12}],"outgoing":[{"to":"add","uri":"toy_py/app.py","line":6},{"to":"mul","uri":"toy_py/app.py","line":7}]}');
+
+/***/ }),
 /* 3 */
 /***/ ((module) => {
 
 module.exports = require("node:util");
+
+/***/ }),
+/* 4 */
+/***/ ((module) => {
+
+module.exports = require("vscode");
 
 /***/ })
 /******/ 	]);
@@ -254,20 +46,191 @@ module.exports = require("node:util");
 /******/ 		};
 /******/ 	
 /******/ 		// Execute the module function
-/******/ 		__webpack_modules__[moduleId].call(module.exports, module, module.exports, __webpack_require__);
+/******/ 		__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
 /******/ 	
 /******/ 		// Return the exports of the module
 /******/ 		return module.exports;
 /******/ 	}
 /******/ 	
 /************************************************************************/
+/******/ 	/* webpack/runtime/compat get default export */
+/******/ 	(() => {
+/******/ 		// getDefaultExport function for compatibility with non-harmony modules
+/******/ 		__webpack_require__.n = (module) => {
+/******/ 			var getter = module && module.__esModule ?
+/******/ 				() => (module['default']) :
+/******/ 				() => (module);
+/******/ 			__webpack_require__.d(getter, { a: getter });
+/******/ 			return getter;
+/******/ 		};
+/******/ 	})();
 /******/ 	
-/******/ 	// startup
-/******/ 	// Load entry module and return exports
-/******/ 	// This entry module is referenced by other modules so it can't be inlined
-/******/ 	var __webpack_exports__ = __webpack_require__(0);
-/******/ 	module.exports = __webpack_exports__;
+/******/ 	/* webpack/runtime/define property getters */
+/******/ 	(() => {
+/******/ 		// define getter functions for harmony exports
+/******/ 		__webpack_require__.d = (exports, definition) => {
+/******/ 			for(var key in definition) {
+/******/ 				if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
+/******/ 					Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
+/******/ 				}
+/******/ 			}
+/******/ 		};
+/******/ 	})();
 /******/ 	
+/******/ 	/* webpack/runtime/hasOwnProperty shorthand */
+/******/ 	(() => {
+/******/ 		__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/make namespace object */
+/******/ 	(() => {
+/******/ 		// define __esModule on exports
+/******/ 		__webpack_require__.r = (exports) => {
+/******/ 			if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+/******/ 				Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+/******/ 			}
+/******/ 			Object.defineProperty(exports, '__esModule', { value: true });
+/******/ 		};
+/******/ 	})();
+/******/ 	
+/************************************************************************/
+var __webpack_exports__ = {};
+// This entry needs to be wrapped in an IIFE because it needs to be isolated against other modules in the chunk.
+(() => {
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   activate: () => (/* binding */ activate),
+/* harmony export */   deactivate: () => (/* binding */ deactivate)
+/* harmony export */ });
+/* harmony import */ var fs__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(1);
+/* harmony import */ var fs__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(fs__WEBPACK_IMPORTED_MODULE_0__);
+/* harmony import */ var _callHierarchy_json__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(2);
+/* harmony import */ var vscode__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(4);
+/* harmony import */ var vscode__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(vscode__WEBPACK_IMPORTED_MODULE_2__);
+
+//const graphdata = require('./callHierarchy.json')
+// import * as graphdata from './callHierarchy.json';
+ //
+// import graphdata from './callHierarchy.json';
+const baseid = _callHierarchy_json__WEBPACK_IMPORTED_MODULE_1__.uri.replace(/(\/|\.)/gm, "_") + '_' + _callHierarchy_json__WEBPACK_IMPORTED_MODULE_1__["function"]; //
+// console.log(`cid = ${ baseid }`);
+const baselabel = baseid; //
+// console.log(`clabel = ${ baselabel }`);
+// --- Modification Start ---
+const nodesArray = []; // Use an array to store node objects
+const edgesArray = []; // Use an array to store edge objects
+// Add the base node
+nodesArray.push({
+    data: {
+        id: baseid,
+        label: baselabel,
+    }
+});
+const addedNodeIds = new Set([baseid]); // Use a Set to track added node IDs to avoid duplicates
+var id = ''; // Define id here
+var label = ''; // Define label here
+// Process incoming edges and nodes
+for (const item of _callHierarchy_json__WEBPACK_IMPORTED_MODULE_1__.incoming) { //
+    id = item.uri.replace(/(\/|\.)/gm, "_") + '_line' + item.line; //
+    // console.log(id);
+    label = item.uri + ' line' + item.line; //
+    // If the node hasn't been added, add it to the array
+    if (!addedNodeIds.has(id)) { //
+        nodesArray.push({
+            data: {
+                id: id,
+                label: label,
+            }
+        });
+        addedNodeIds.add(id); //
+    }
+    // Add the edge
+    edgesArray.push({
+        data: {
+            source: id, // source for incoming is id
+            target: baseid
+        }
+    });
+}
+// Process outgoing edges and nodes
+for (const item of _callHierarchy_json__WEBPACK_IMPORTED_MODULE_1__.outgoing) { //
+    // id = (item as any).uri.replace(/(\/|\.)/gm, "_") + '_line' + (item as any).line + '_' + (item as any).uri.to(/(\/|\.)/gm, "_");
+    id = item.uri.replace(/(\/|\.)/gm, "_") + '_' + item.to; //
+    // console.log(id);
+    label = item.uri + ' line' + item.line; //
+    // If the node hasn't been added, add it to the array
+    if (!addedNodeIds.has(id)) { //
+        nodesArray.push({
+            data: {
+                id: id,
+                label: label,
+            }
+        });
+        addedNodeIds.add(id); //
+    }
+    // Add the edge
+    edgesArray.push({
+        data: {
+            source: baseid,
+            target: id // target for outgoing is id
+        }
+    });
+}
+// Use JSON.stringify to convert the object containing arrays into a valid JSON string
+const elementsObject = {
+    nodes: nodesArray,
+    edges: edgesArray
+};
+const elements = JSON.stringify(elementsObject); // <-- Generate standard JSON string directly
+console.log("Generated elements JSON:", elements); // Log the generated JSON
+// --- Modification End ---
+// below is for testing validity of ${ elements }, simply replace with latest ui stuffs
+ //
+const util = __webpack_require__(3); //
+function activate(context) {
+    console.log("==> Activating graph extension in experiments/graphdata..."); // Log activation
+    let disposable = vscode__WEBPACK_IMPORTED_MODULE_2__.commands.registerCommand('graph.run', () => {
+        console.log("==> 'graph.run' command executed!"); // Log command execution
+        const panel = vscode__WEBPACK_IMPORTED_MODULE_2__.window.createWebviewPanel(//
+        'codeGraphPanel', // Internal ID for the webview panel
+        'Code Graph', // Title of the panel displayed to the user
+        vscode__WEBPACK_IMPORTED_MODULE_2__.ViewColumn.One, // Show the new webview panel in the first editor column
+        {
+            // Enable javascript in the webview
+            enableScripts: true, //
+            localResourceRoots: [
+                vscode__WEBPACK_IMPORTED_MODULE_2__.Uri.joinPath(context.extensionUri, 'webview')
+            ]
+        });
+        var data = ""; // // Not strictly needed anymore
+        try { //
+            // Set the HTML content for the webview panel
+            const graphDataString = elements; // // Use the generated JSON string
+            const webviewFolderPathOnDisk = vscode__WEBPACK_IMPORTED_MODULE_2__.Uri.joinPath(//
+            context.extensionUri, 'webview');
+            const htmlPathOnDisk = vscode__WEBPACK_IMPORTED_MODULE_2__.Uri.joinPath(webviewFolderPathOnDisk, 'graphView.html'); //
+            let htmlContent = fs__WEBPACK_IMPORTED_MODULE_0__.readFileSync(htmlPathOnDisk.fsPath, 'utf8'); //
+            const cssPathOnDisk = vscode__WEBPACK_IMPORTED_MODULE_2__.Uri.joinPath(webviewFolderPathOnDisk, 'graphStyle.css'); //
+            const scriptPathOnDisk = vscode__WEBPACK_IMPORTED_MODULE_2__.Uri.joinPath(webviewFolderPathOnDisk, 'graphScript.js'); //
+            const cssUri = panel.webview.asWebviewUri(cssPathOnDisk); //
+            const scriptUri = panel.webview.asWebviewUri(scriptPathOnDisk); //
+            htmlContent = htmlContent.replace('${graphDataJson}', graphDataString); //
+            htmlContent = htmlContent.replace('${cssUri}', cssUri.toString()); //
+            htmlContent = htmlContent.replace('${scriptUri}', scriptUri.toString()); //
+            panel.webview.html = htmlContent; //
+        }
+        catch (error) { //
+            console.log(error);
+        }
+    });
+    context.subscriptions.push(disposable); //
+}
+// This method is called when your extension is deactivated
+function deactivate() { } //
+
+})();
+
+module.exports = __webpack_exports__;
 /******/ })()
 ;
 //# sourceMappingURL=extension.js.map
