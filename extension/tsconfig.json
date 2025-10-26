@@ -13,7 +13,7 @@
 		},
 		"strict": true,   /* enable all strict type-checking options */
 		"moduleResolution": "Node",
-		"ignoreDeprecations": "6.0"
+		"ignoreDeprecations": "6.0",
 		"resolveJsonModule": true,
 		"esModuleInterop": true,
 		/* Additional Checks */
