@@ -1,37 +1,30 @@
 {
-  "function": "choose_op",
+  "function": "run",
   "current_file": "app.py",
-  "line": 20,
+  "line": 18,
   "incoming": [
     {
-      "from": "run",
-      "caller_line": 18,
+      "from": "<module>",
+      "caller_line": 30,
       "file_path": "app.py",
-      "line": 20
-    },
-    {
-      "from": "run",
-      "caller_line": 18,
-      "file_path": "app.py",
-      "line": 21
-    },
-    {
-      "from": "run",
-      "caller_line": 18,
-      "file_path": "app.py",
-      "line": 22
+      "line": 30
     }
   ],
   "outgoing": [
     {
-      "to": "add",
+      "to": "choose_op",
       "file_path": "app.py",
-      "line": 10
+      "line": 20
     },
     {
-      "to": "mul",
+      "to": "choose_op",
       "file_path": "app.py",
-      "line": 12
+      "line": 21
+    },
+    {
+      "to": "choose_op",
+      "file_path": "app.py",
+      "line": 22
     }
   ]
 }
