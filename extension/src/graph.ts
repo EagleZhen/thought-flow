@@ -13,7 +13,7 @@ export function activate(context: vscode.ExtensionContext) { //
     // Create a dedicated output channel for logging
     const outputChannel = vscode.window.createOutputChannel('Code Graph');
     outputChannel.appendLine("==> Activating graph extension in experiments/graphdata...");
-
+·
     let disposable = vscode.commands.registerCommand('graph.run', () => { //
         // Log command execution and show the channel to the user
         outputChannel.appendLine("==> 'graph.run' command executed!");
@@ -36,10 +36,10 @@ export function activate(context: vscode.ExtensionContext) { //
         try{
             // --- Modification Start ---
             // Data processing logic moved inside the try...catch block
-            
+
             // id: pack the information to form a unique id; not for display
             const baseid = sampleInput.target.filePath.replace(/(\/|\.)/gm, "_") + sampleInput.target.line + sampleInput.target.name;
-            
+
             // label: for display
             const baselabel = sampleInput.target.filePath + ' line' + sampleInput.target.line + ' ' + sampleInput.target.name;
 
