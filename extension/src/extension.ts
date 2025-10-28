@@ -1,4 +1,6 @@
 import * as vscode from "vscode";
+import { showGraphView } from "@/graph";
+import type { CytoscapeGraph } from "@/types";
 
 export function activate(context: vscode.ExtensionContext) {
   const output = vscode.window.createOutputChannel("ThoughtFlow");
@@ -30,7 +32,22 @@ export function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand("thoughtflow.debug.testGraph", async () => {
-      // TODO: Test graph with stub data
+      output.appendLine("Testing graph visualization...");
+
+      // Stub data for testing
+      const stubGraph: CytoscapeGraph = {
+        nodes: [
+          { data: { id: "main @ main.py:1", label: "main" } },
+          { data: { id: "add @ utils.py:5", label: "add" } },
+          { data: { id: "factorial @ core.py:10", label: "factorial" } }
+        ],
+        edges: [
+          { data: { source: "main @ main.py:1", target: "add @ utils.py:5" } },
+          { data: { source: "main @ main.py:1", target: "factorial @ core.py:10" } }
+        ]
+      };
+
+      showGraphView(context, stubGraph, output);
     })
   );
 }
