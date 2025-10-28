@@ -14,8 +14,23 @@
   "contributes": {
     "commands": [
       {
-        "command": "graph.run",
-        "title": "Run Code Graph"
+        "command": "thoughtflow.visualizeCallGraph",
+        "title": "ThoughtFlow: Visualize Call Graph"
+      },
+      {
+        "command": "thoughtflow.debug.testAnalyzer",
+        "title": "ThoughtFlow Debug: Test Analyzer"
+      },
+      {
+        "command": "thoughtflow.debug.testGraph",
+        "title": "ThoughtFlow Debug: Test Graph"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "thoughtflow.visualizeCallGraph",
+        "key": "ctrl+shift+g",
+        "mac": "cmd+shift+g"
       }
     ]
   },
