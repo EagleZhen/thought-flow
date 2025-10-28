@@ -38,6 +38,7 @@ ThoughtFlow analyzes Python code and generates interactive call graphs, making i
    - `Cmd+Shift+A` / `Ctrl+Shift+A` → **Test Analyzer** (backend only)
    - `Cmd+Shift+G` / `Ctrl+Shift+G` → **Test Graph** (frontend only)
    - Command Palette → **"ThoughtFlow: Visualize Call Graph"** (full flow, no keybinding yet)
+6. View logs: **View** → **Output** → Select **"ThoughtFlow"** from dropdown
 
 Code auto-formats on save (Prettier for TS/JS). Feel free to mess with the codes in `experiments/test-formatting/`.
 
