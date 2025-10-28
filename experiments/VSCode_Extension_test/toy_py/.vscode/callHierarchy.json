@@ -1,0 +1,37 @@
+{
+  "function": "choose_op",
+  "current_file": "app.py",
+  "line": 4,
+  "incoming": [
+    {
+      "from": "run",
+      "caller_line": 18,
+      "file_path": "app.py",
+      "line": 20
+    },
+    {
+      "from": "run",
+      "caller_line": 18,
+      "file_path": "app.py",
+      "line": 21
+    },
+    {
+      "from": "run",
+      "caller_line": 18,
+      "file_path": "app.py",
+      "line": 22
+    }
+  ],
+  "outgoing": [
+    {
+      "to": "add",
+      "file_path": "app.py",
+      "line": 10
+    },
+    {
+      "to": "mul",
+      "file_path": "app.py",
+      "line": 12
+    }
+  ]
+}
