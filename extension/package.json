@@ -28,7 +28,12 @@
     ],
     "keybindings": [
       {
-        "command": "thoughtflow.visualizeCallGraph",
+        "command": "thoughtflow.debug.testAnalyzer",
+        "key": "ctrl+shift+a",
+        "mac": "cmd+shift+a"
+      },
+      {
+        "command": "thoughtflow.debug.testGraph",
         "key": "ctrl+shift+g",
         "mac": "cmd+shift+g"
       }
