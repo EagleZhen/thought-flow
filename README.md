@@ -34,10 +34,10 @@ ThoughtFlow analyzes Python code and generates interactive call graphs, making i
 2. Install dependencies: `cd extension && npm install`
 3. Press `F5` → Select **"VS Code Extension Development"**
 4. In the new Extension Development Host window, open a Python project (or use `test-workspace/`)
-5. Click on a function, then:
-   - Right-click → **"Show Python Call Hierarchy"**, or
-   - Press `Cmd+Shift+H` / `Ctrl+Shift+H`, or
-   - `Cmd+Shift+P` / `Ctrl+Shift+P` → **"Show Python Call Hierarchy"**
+5. Click on a function, then run:
+   - `Cmd+Shift+A` / `Ctrl+Shift+A` → **Test Analyzer** (backend only)
+   - `Cmd+Shift+G` / `Ctrl+Shift+G` → **Test Graph** (frontend only)
+   - Command Palette → **"ThoughtFlow: Visualize Call Graph"** (full flow, no keybinding yet)
 
 Code auto-formats on save (Prettier for TS/JS). Feel free to mess with the codes in `experiments/test-formatting/`.
 
