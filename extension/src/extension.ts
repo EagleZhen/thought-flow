@@ -1,6 +1,8 @@
 import * as vscode from "vscode";
 
 export function activate(context: vscode.ExtensionContext) {
+  const output = vscode.window.createOutputChannel("ThoughtFlow");
+  context.subscriptions.push(output);
 
   context.subscriptions.push(
     vscode.commands.registerCommand("thoughtflow.visualizeCallGraph", async () => {
