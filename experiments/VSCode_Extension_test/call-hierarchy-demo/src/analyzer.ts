@@ -191,6 +191,78 @@ export const customProvider: vscode.CallHierarchyProvider = {
     const results: vscode.CallHierarchyIncomingCall[] = [];
     const targetName = item.name;
 
+    // If the user clicked an occurrence (not a definition) we would like to
+    // include the syntactic enclosing call as an incoming relation.
+    // We synthesize that here by detecting the smallest enclosing '('..')' pair
+    // and the identifier immediately before it.
+    try {
+      const itemDoc = await vscode.workspace.openTextDocument(item.uri);
+      const selPos = item.selectionRange?.start;
+      if (selPos) {
+        const offset = itemDoc.offsetAt(selPos);
+        const text = itemDoc.getText();
+
+        // Walk backward from the selection to find the opening parenthesis
+        // that starts the smallest enclosing call expression.
+        let balance = 0;
+        let openIndex = -1;
+        for (let i = offset - 1; i >= 0; i--) {
+          const currentCharacter = text[i];
+          if (currentCharacter === ")") {
+            balance++;
+          } else if (currentCharacter === "(") {
+            if (balance === 0) {
+              openIndex = i;
+              break;
+            } else {
+              balance--;
+            }
+          }
+        }
+
+        if (openIndex >= 0) {
+          // Find the identifier immediately before the '('
+          let idEnd = openIndex - 1;
+          // Skip whitespace
+          while (idEnd >= 0 && /\s/.test(text[idEnd])) idEnd--;
+          // Accept identifiers and dotted module paths (letters, digits, underscore, dot)
+          let idStart = idEnd;
+          while (idStart >= 0 && /[A-Za-z0-9_\.]/.test(text[idStart])) idStart--;
+          idStart++;
+
+          if (idEnd >= idStart) {
+            const callerName = text.substring(idStart, idEnd + 1);
+            if (callerName && callerName !== targetName) {
+              const callerStartPos = itemDoc.positionAt(idStart);
+              const callerEndPos = itemDoc.positionAt(idEnd + 1);
+              const callerRange = new vscode.Range(callerStartPos, callerEndPos);
+
+              results.push(
+                new vscode.CallHierarchyIncomingCall(
+                  new vscode.CallHierarchyItem(
+                    vscode.SymbolKind.Function,
+                    callerName,
+                    "",
+                    item.uri,
+                    callerRange,
+                    callerRange
+                  ),
+                  [item.selectionRange]
+                )
+              );
+              // If we synthesized an enclosing caller for this occurrence,
+              // return it immediately and skip the workspace-wide scan. This
+              // makes the incoming list based purely on the clicked occurrence
+              // (option A behavior requested by the user).
+              return results;
+            }
+          }
+        }
+      }
+    } catch (e) {
+      // ignore any errors in synthetic enclosing-call detection
+    }
+
     // Find all Python files in the workspace
     // Pattern: **/*.py matches all .py files recursively
     // Exclude: node_modules (npm packages don't contain user Python code)
