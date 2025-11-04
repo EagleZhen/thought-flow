@@ -28,6 +28,10 @@
       {
         "command": "thoughtflow.debug.testGitHubAuth",
         "title": "ThoughtFlow Debug: Test GitHub Auth"
+      },
+      {
+        "command": "thoughtflow.debug.testDatabase",
+        "title": "ThoughtFlow Debug: Test Database"
       }
     ],
     "keybindings": [
