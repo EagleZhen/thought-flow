@@ -39,12 +39,12 @@ export function activate(context: vscode.ExtensionContext) {
         nodes: [
           { data: { id: "main @ main.py:1", label: "main" } },
           { data: { id: "add @ utils.py:5", label: "add" } },
-          { data: { id: "path/factorial @ core.py:10", label: "path/factorial" } }
+          { data: { id: "path/factorial @ core.py:10", label: "path/factorial" } },
         ],
         edges: [
           { data: { source: "main @ main.py:1", target: "add @ utils.py:5" } },
-          { data: { source: "main @ main.py:1", target: "path/factorial @ core.py:10" } }
-        ]
+          { data: { source: "main @ main.py:1", target: "path/factorial @ core.py:10" } },
+        ],
       };
 
       showGraphView(context, stubGraph, output);
