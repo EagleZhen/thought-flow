@@ -27,6 +27,7 @@ function encodeGraphIds(graph: CytoscapeGraph): CytoscapeGraph {
 
 /**
  * Display a call graph in a webview panel.
+ * Graph data is sent via postMessage (safe from injection, enables dynamic updates).
  */
 export function showGraphView(
   context: vscode.ExtensionContext,
@@ -44,9 +45,6 @@ export function showGraphView(
   );
 
   try {
-    const graphDataJson = JSON.stringify(graph);
-    output.appendLine('Graph data: ' + graphDataJson);
-
     const htmlPath = vscode.Uri.joinPath(context.extensionUri, 'webview', 'graphView.html');
     let htmlContent = fs.readFileSync(htmlPath.fsPath, 'utf8');
 
@@ -56,11 +54,15 @@ export function showGraphView(
     const cssUri = panel.webview.asWebviewUri(cssPath);
     const scriptUri = panel.webview.asWebviewUri(scriptPath);
 
-    htmlContent = htmlContent.replace('${graphDataJson}', graphDataJson);
     htmlContent = htmlContent.replace('${cssUri}', cssUri.toString());
     htmlContent = htmlContent.replace('${scriptUri}', scriptUri.toString());
 
     panel.webview.html = htmlContent;
+
+    // Encode IDs and send via postMessage
+    const encodedGraph = encodeGraphIds(graph);
+    output.appendLine('Graph data: ' + JSON.stringify(encodedGraph));
+    panel.webview.postMessage({ type: 'INIT_GRAPH', data: encodedGraph });
   } catch (error) {
     const msg = `Failed to show graph: ${error}`;
     output.appendLine(`[ERROR] ${msg}`);
