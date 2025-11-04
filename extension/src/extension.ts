@@ -22,20 +22,13 @@ export function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand("thoughtflow.debug.testAnalyzer", async () => {
-      output.appendLine("Testing call hierarchy analyzer...");
-      context.subscriptions.push(
-        vscode.languages.registerCallHierarchyProvider(
-          { scheme: "file", language: "python" },
-          customProvider
-        )
-      );
-
       const editor = vscode.window.activeTextEditor;
       if (!editor) {
         vscode.window.showInformationMessage("Open a Python file and place cursor on a function.");
         return;
       }
-      analyzeCallHierarchy(context, output);
+
+      // TODO: Test analyzer, log to output channel
     })
   );
 
