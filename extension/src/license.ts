@@ -16,6 +16,33 @@ const firebaseConfig = {
   measurementId: "G-92KX2F49TV",
 };
 
+import * as vscode from "vscode";
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
+/**
+ * Get the current user's GitHub user ID from VS Code auth
+ * Returns the numeric GitHub user ID (immutable, unique identifier)
+ */
+export async function getGitHubUserId(): Promise<string | null> {
+  try {
+    const session = await vscode.authentication.getSession("github", ["user:email"], {
+      createIfNone: true,
+    });
+
+    if (!session) {
+      console.log("❌ No GitHub session found");
+      return null;
+    }
+
+    console.log("✓ GitHub session found");
+    console.log("  session.account.id:", session.account.id);
+    console.log("  session.account.label:", session.account.label);
+
+    // Return the user ID (immutable identifier)
+    return session.account.id;
+  } catch (error) {
+    console.error("❌ Error getting GitHub session:", error);
+    return null;
+  }
+}
