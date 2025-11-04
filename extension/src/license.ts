@@ -17,9 +17,23 @@ const firebaseConfig = {
 };
 
 import * as vscode from "vscode";
-// Initialize Firebase
-// const app = initializeApp(firebaseConfig);
-// const analytics = getAnalytics(app);
+import type { FirebaseApp } from "firebase/app";
+import { getFirestore, doc, getDoc, setDoc } from "firebase/firestore";
+
+let app: FirebaseApp | null = null;
+
+/**
+ * Initialize Firebase lazily (singleton pattern)
+ * Returns the same Firebase app instance on subsequent calls
+ */
+function initializeFirebaseApp(): FirebaseApp {
+  if (app) {
+    return app;
+  }
+  app = initializeApp(firebaseConfig);
+  getAnalytics(app);
+  return app;
+}
 
 /**
  * Get GitHub user session (both ID and username)
