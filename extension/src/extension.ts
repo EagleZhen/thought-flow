@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { showGraphView } from "@/graph";
-import { getGitHubUserId } from "@/license";
+import { getGitHubSession } from "@/license";
 import type { CytoscapeGraph } from "@/types";
 
 export function activate(context: vscode.ExtensionContext) {
@@ -56,12 +56,13 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand("thoughtflow.debug.testGitHubAuth", async () => {
       output.appendLine("Testing GitHub Authentication...");
 
-      const userId = await getGitHubUserId();
+      const session = await getGitHubSession();
 
-      if (userId) {
-        output.appendLine(`✅ GitHub User ID: ${userId}`);
+      if (session) {
+        output.appendLine(`✅ GitHub User ID: ${session.userId}`);
+        output.appendLine(`✅ GitHub User Name: ${session.userName}`);
       } else {
-        output.appendLine("❌ Failed to get GitHub User ID");
+        output.appendLine("❌ Failed to get GitHub session");
       }
 
       output.show();

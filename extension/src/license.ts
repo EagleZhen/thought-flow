@@ -22,10 +22,14 @@ import * as vscode from "vscode";
 // const analytics = getAnalytics(app);
 
 /**
- * Get the current user's GitHub user ID from VS Code auth
- * Returns the numeric GitHub user ID (immutable, unique identifier)
+ * Get GitHub user session (both ID and username)
+ * userId: numeric GitHub ID (immutable)
+ * userName: GitHub username (can change, for display only)
  */
-export async function getGitHubUserId(): Promise<string | null> {
+export async function getGitHubSession(): Promise<{
+  userId: string;
+  userName: string;
+} | null> {
   try {
     const session = await vscode.authentication.getSession("github", ["user:email"], {
       createIfNone: true,
@@ -35,8 +39,10 @@ export async function getGitHubUserId(): Promise<string | null> {
       return null;
     }
 
-    // Return the user ID (immutable identifier)
-    return session.account.id;
+    return {
+      userId: session.account.id,
+      userName: session.account.label,
+    };
   } catch (error) {
     console.error("❌ Error getting GitHub session:", error);
     return null;
