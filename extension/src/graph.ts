@@ -61,8 +61,12 @@ export function showGraphView(
 
     // Encode IDs and send via postMessage
     const encodedGraph = encodeGraphIds(graph);
-    output.appendLine('Graph data: ' + JSON.stringify(encodedGraph));
     panel.webview.postMessage({ type: 'INIT_GRAPH', data: encodedGraph });
+
+    output.appendLine('Original graph:');
+    output.appendLine(JSON.stringify(graph, null, 2));
+    output.appendLine('Encoded graph (IDs safe for HTML/CSS):');
+    output.appendLine(JSON.stringify(encodedGraph, null, 2));
   } catch (error) {
     const msg = `Failed to show graph: ${error}`;
     output.appendLine(`[ERROR] ${msg}`);
