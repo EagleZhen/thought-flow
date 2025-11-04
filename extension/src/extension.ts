@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { showGraphView } from "@/graph";
-import { getGitHubSession, getOrCreateAccount } from "@/license";
+import { getGitHubSession } from "@/license";
 import type { CytoscapeGraph } from "@/types";
 
 export function activate(context: vscode.ExtensionContext) {
