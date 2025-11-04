@@ -79,10 +79,10 @@ export function activate(context: vscode.ExtensionContext) {
         return;
       }
 
-      output.appendLine(`Got session: ${session.userId} (${session.userName})`);
-      const account = await getOrCreateAccount(session.userId, session.userName);
+      output.appendLine(`Got session: ${session.account.id} (${session.account.label})`);
+      const account = await getOrCreateAccount(session.account.id, session.accessToken);
       if (!account) {
-        output.appendLine("❌ Failed to get or create account in database - check console for errors");
+        output.appendLine("❌ Failed to get or create account - check console for errors");
         output.show();
         return;
       }
