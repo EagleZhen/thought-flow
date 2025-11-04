@@ -18,8 +18,8 @@ const firebaseConfig = {
 
 import * as vscode from "vscode";
 // Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
+// const app = initializeApp(firebaseConfig);
+// const analytics = getAnalytics(app);
 /**
  * Get the current user's GitHub user ID from VS Code auth
  * Returns the numeric GitHub user ID (immutable, unique identifier)
