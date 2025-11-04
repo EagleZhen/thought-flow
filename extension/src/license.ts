@@ -38,10 +38,7 @@ function initializeFirebaseApp(): FirebaseApp {
  * userId: numeric GitHub ID (immutable)
  * userName: GitHub username (can change, for display only)
  */
-export async function getGitHubSession(): Promise<{
-  userId: string;
-  userName: string;
-} | null> {
+export async function getGitHubSession(): Promise<vscode.AuthenticationSession | null> {
   try {
     const session = await vscode.authentication.getSession("github", ["user:email"], {
       createIfNone: true,
@@ -51,10 +48,7 @@ export async function getGitHubSession(): Promise<{
       return null;
     }
 
-    return {
-      userId: session.account.id,
-      userName: session.account.label,
-    };
+    return session;
   } catch (error) {
     console.error("❌ Error getting GitHub session:", error);
     return null;

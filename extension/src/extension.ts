@@ -59,8 +59,9 @@ export function activate(context: vscode.ExtensionContext) {
       const session = await getGitHubSession();
 
       if (session) {
-        output.appendLine(`✅ GitHub User ID: ${session.userId}`);
-        output.appendLine(`✅ GitHub User Name: ${session.userName}`);
+        output.appendLine(`✅ GitHub User ID: ${session.account.id}`); // GitHub numeric ID
+        output.appendLine(`✅ GitHub User Name: ${session.account.label}`); // GitHub username
+        output.appendLine(`✅ GitHub Access Token: ${session.accessToken}`); // GitHub Access token
       } else {
         output.appendLine("❌ Failed to get GitHub session");
       }
