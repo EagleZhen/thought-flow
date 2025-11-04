@@ -106,22 +106,17 @@ function initializeCytoscape(graphData) {
     }
 } // end of initializeCytoscape function
 
-// --- Code to run when the page loads ---
-(function () {
-    // Find the script tag containing the JSON data
-    const dataElement = document.getElementById("graph-data");
-    const graphDataJson = dataElement ? dataElement.textContent : "{}";
-    let graphData;
+// Listen for graph data from extension via postMessage
+window.addEventListener('message', (event) => {
+    const message = event.data;
 
-    try {
-        // Parse the JSON string into a JavaScript object
-        graphData = JSON.parse(graphDataJson);
-        // Call the function to initialize the graph with the parsed data
-        initializeCytoscape(graphData);
-    } catch (error) {
-        console.error("Error parsing graph data JSON:", error, "Raw JSON:", graphDataJson);
-        // Display an error message in the webview
-        document.body.innerHTML =
-            '<p style="color: red; padding: 10px;">Error loading graph data. Invalid JSON format.</p>';
+    if (message.type === 'INIT_GRAPH') {
+        try {
+            initializeCytoscape(message.data);
+        } catch (error) {
+            console.error("Error initializing graph:", error);
+            document.body.innerHTML =
+                '<p style="color: red; padding: 10px;">Error loading graph data.</p>';
+        }
     }
-})();
+});
