@@ -40,16 +40,16 @@ export function showGraphView(
     vscode.ViewColumn.One,
     {
       enableScripts: true,
-      localResourceRoots: [vscode.Uri.joinPath(context.extensionUri, 'webview')]
+      localResourceRoots: [vscode.Uri.joinPath(context.extensionUri, 'dist', 'templates')]
     }
   );
 
   try {
-    const htmlPath = vscode.Uri.joinPath(context.extensionUri, 'webview', 'graphView.html');
+    const htmlPath = vscode.Uri.joinPath(context.extensionUri, 'dist', 'templates', 'graphView.html');
     let htmlContent = fs.readFileSync(htmlPath.fsPath, 'utf8');
 
-    const cssPath = vscode.Uri.joinPath(context.extensionUri, 'webview', 'graphStyle.css');
-    const scriptPath = vscode.Uri.joinPath(context.extensionUri, 'webview', 'graphScript.js');
+    const cssPath = vscode.Uri.joinPath(context.extensionUri, 'dist', 'templates', 'graphStyle.css');
+    const scriptPath = vscode.Uri.joinPath(context.extensionUri, 'dist', 'templates', 'graphScript.js');
 
     const cssUri = panel.webview.asWebviewUri(cssPath);
     const scriptUri = panel.webview.asWebviewUri(scriptPath);
