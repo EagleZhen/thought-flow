@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import { showGraphView } from "@/graph";
+import { getGitHubUserId } from "@/license";
 import type { CytoscapeGraph } from "@/types";
 
 export function activate(context: vscode.ExtensionContext) {
@@ -48,6 +49,22 @@ export function activate(context: vscode.ExtensionContext) {
       };
 
       showGraphView(context, stubGraph, output);
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("thoughtflow.debug.testGitHubAuth", async () => {
+      output.appendLine("Testing GitHub Authentication...");
+
+      const userId = await getGitHubUserId();
+
+      if (userId) {
+        output.appendLine(`✅ GitHub User ID: ${userId}`);
+      } else {
+        output.appendLine("❌ Failed to get GitHub User ID");
+      }
+
+      output.show();
     })
   );
 }
