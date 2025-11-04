@@ -18,7 +18,7 @@ const firebaseConfig = {
 
 import * as vscode from "vscode";
 import type { FirebaseApp } from "firebase/app";
-import { getFirestore, doc, getDoc, setDoc } from "firebase/firestore";
+import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 
 let app: FirebaseApp | null = null;
 
@@ -59,6 +59,46 @@ export async function getGitHubSession(): Promise<{
     };
   } catch (error) {
     console.error("❌ Error getting GitHub session:", error);
+    return null;
+  }
+}
+
+/**
+ * Get or create an account in Firestore
+ * If account doesn't exist, creates one with free tier and core features
+ */
+export async function getOrCreateAccount(
+  userId: string,
+  userName: string
+): Promise<{ tier: "free" | "paid"; features: string[] } | null> {
+  try {
+    const db = getFirestore(initializeFirebaseApp());
+    const accountRef = doc(db, "accounts", userId);
+    const accountDoc = await getDoc(accountRef);
+
+    if (accountDoc.exists()) {
+      const data = accountDoc.data();
+      return {
+        tier: data.tier,
+        features: data.features,
+      };
+    }
+
+    // Create new account with free tier and core features if not exists
+    const newAccount = {
+      tier: "free",
+      features: ["core"],
+      userName,
+      createdAt: serverTimestamp(),
+    };
+
+    await setDoc(accountRef, newAccount);
+    return {
+      tier: "free",
+      features: ["core"],
+    };
+  } catch (error) {
+    console.error("❌ Error getting or creating account:", error);
     return null;
   }
 }
