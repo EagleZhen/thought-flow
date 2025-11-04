@@ -2,6 +2,29 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import type { CytoscapeGraph } from '@/types';
 
+// Encode ID for safe use in HTML/CSS (reversible with decodeURIComponent)
+const encodeId = (id: string) => encodeURIComponent(id);
+
+/**
+ * Encode all IDs in graph for safe HTML/CSS use.
+ */
+function encodeGraphIds(graph: CytoscapeGraph): CytoscapeGraph {
+  return {
+    nodes: graph.nodes.map(node => ({
+      data: {
+        id: encodeId(node.data.id),
+        label: node.data.label
+      }
+    })),
+    edges: graph.edges.map(edge => ({
+      data: {
+        source: encodeId(edge.data.source),
+        target: encodeId(edge.data.target)
+      }
+    }))
+  };
+}
+
 /**
  * Display a call graph in a webview panel.
  */
