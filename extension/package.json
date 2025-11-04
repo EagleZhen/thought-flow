@@ -24,6 +24,10 @@
       {
         "command": "thoughtflow.debug.testGraph",
         "title": "ThoughtFlow Debug: Test Graph"
+      },
+      {
+        "command": "thoughtflow.debug.testGitHubAuth",
+        "title": "ThoughtFlow Debug: Test GitHub Auth"
       }
     ],
     "keybindings": [
