@@ -515,3 +515,124 @@ export const customProvider: vscode.CallHierarchyProvider = {
     return results;
   },
 };
+
+export async function callHierarchyAnalyzer(
+  context: vscode.ExtensionContext,
+  output: vscode.OutputChannel
+) {
+  output.show(true); // Show the panel immediately when extension activates
+  context.subscriptions.push(
+    vscode.languages.registerCallHierarchyProvider(
+      { scheme: "file", language: "python" },
+      customProvider
+    )
+  );
+
+  try {
+    output.appendLine("🚀 Command started");
+
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) {
+      // No file is currently open in the editor
+      vscode.window.showInformationMessage("Open a Python file and place cursor on a function.");
+      return;
+    }
+
+    // ============================================================
+    // STEP 2: Log context information
+    // ============================================================
+    output.appendLine(`📄 File: ${editor.document.fileName}`);
+    output.appendLine(
+      `📍 Position: ${editor.selection.active.line}:${editor.selection.active.character}`
+    );
+
+    // ============================================================
+    // STEP 3: Get the call hierarchy for the symbol at cursor
+    // ============================================================
+    const result = await getCallHierarchy(editor.document, editor.selection.active);
+    if (!result) {
+      // Cursor is not on a valid symbol (e.g., on whitespace or comment)
+      vscode.window.showInformationMessage("No symbol found at current position.");
+      return;
+    }
+
+    // ============================================================
+    // STEP 4: Build JSON data structure with relative paths
+    // ============================================================
+    // Helper function: convert absolute file URIs to workspace-relative paths
+    // Example: file:///Users/me/project/foo.py → foo.py (if project is workspace root)
+    const toRel = (uri: vscode.Uri) => vscode.workspace.asRelativePath(uri, false);
+
+    // Extract function information
+    const funcName = result.function.name;
+    const funcFile = toRel(result.function.uri);
+    const funcLine = result.function.range.start.line + 1; // +1 for 1-indexed display
+
+    // Create the data object with incoming and outgoing calls
+    const data = {
+      function: funcName, // Name of the analyzed function
+      current_file: funcFile, // File where function is defined
+      line: funcLine, // Line number (1-indexed)
+
+      // Incoming calls - who calls this function
+      // Self-references are already filtered in the provider
+      incoming:
+        result.callers?.map((caller) => ({
+          from: caller.from.name, // Name of the calling function
+          caller_line: caller.from.range.start.line + 1, // Line where caller is defined
+          file_path: toRel(caller.from.uri), // File containing the caller
+          line: caller.fromRanges[0].start.line + 1, // Line where the call happens
+        })) || [],
+
+      // Outgoing calls - what functions does this function call
+      outgoing:
+        result.callees?.map((callee) => ({
+          to: callee.to.name, // Name of the called function
+          file_path: toRel(callee.to.uri), // File containing the callee
+          line: callee.fromRanges[0].start.line + 1, // Line where the call happens
+        })) || [],
+    };
+
+    // ============================================================
+    // STEP 5: Log the generated data to output channel
+    // ============================================================
+    output.appendLine("📊 Generated data:");
+    output.appendLine(JSON.stringify(data, null, 2));
+
+    // ============================================================
+    // STEP 6: Save to .vscode/callHierarchy.json
+    // ============================================================
+    const folders = vscode.workspace.workspaceFolders;
+    if (folders && folders.length > 0) {
+      // Ensure .vscode directory exists
+      const vscodeDir = vscode.Uri.joinPath(folders[0].uri, ".vscode");
+      await vscode.workspace.fs.createDirectory(vscodeDir);
+
+      // Write the JSON file
+      const fileUri = vscode.Uri.joinPath(vscodeDir, "callHierarchy.json");
+      await vscode.workspace.fs.writeFile(fileUri, Buffer.from(JSON.stringify(data, null, 2)));
+
+      // ============================================================
+      // STEP 7: Notify user and open the file
+      // ============================================================
+      output.appendLine(`✅ Saved to ${fileUri.fsPath}`);
+      vscode.window.showInformationMessage(`Call hierarchy saved to ${fileUri.fsPath}`);
+
+      // Open the JSON file in the editor so user can see the results
+      const jsonDoc = await vscode.workspace.openTextDocument(fileUri);
+      await vscode.window.showTextDocument(jsonDoc);
+    } else {
+      // No workspace folder is open (user opened a single file, not a folder)
+      vscode.window.showWarningMessage("No workspace folder open.");
+    }
+
+    output.appendLine("--- Complete ---");
+  } catch (error) {
+    // ============================================================
+    // Handle any errors that occur during execution
+    // ============================================================
+    const msg = `Error: ${error}`;
+    output.appendLine(msg);
+    vscode.window.showErrorMessage(msg);
+  }
+}
