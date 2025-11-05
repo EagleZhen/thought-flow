@@ -25,6 +25,17 @@
     "onLanguage:python"
   ],
   "main": "./dist/extension.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/EagleZhen/thought-flow"
+  },
+  "bugs": {
+    "url": "https://github.com/EagleZhen/thought-flow/issues"
+  },
+  "homepage": "https://github.com/EagleZhen/thought-flow#readme",
+  "author": {
+    "name": "csci3100-group-10"
+  },
   "contributes": {
     "commands": [
       {
