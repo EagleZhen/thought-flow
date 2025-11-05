@@ -1,8 +1,10 @@
 {
-  "name": "graph",
-  "displayName": "graph",
-  "description": "",
+  "name": "thought-flow",
+  "displayName": "Thought Flow",
+  "description": "Visualize Python code execution flow as interactive call graphs to understand complex codebases",
   "version": "0.0.1",
+  "publisher": "csci3100-group-10",
+  "preview": true,
   "engines": {
     "vscode": "^1.96.0"
   },
