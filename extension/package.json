@@ -9,7 +9,18 @@
     "vscode": "^1.96.0"
   },
   "categories": [
-    "Other"
+    "Visualization",
+    "Programming Languages"
+  ],
+  "keywords": [
+    "python",
+    "call-graph",
+    "visualization",
+    "code-analysis",
+    "cytoscape",
+    "code-navigation",
+    "execution-flow"
+  ],
   ],
   "activationEvents": [],
   "main": "./dist/extension.js",
