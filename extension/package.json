@@ -1,16 +1,41 @@
 {
-  "name": "graph",
-  "displayName": "graph",
-  "description": "",
+  "name": "thought-flow",
+  "displayName": "Thought Flow",
+  "description": "Visualize Python code execution flow as interactive call graphs to understand complex codebases",
   "version": "0.0.1",
+  "publisher": "csci3100-group-10",
+  "preview": true,
   "engines": {
     "vscode": "^1.96.0"
   },
   "categories": [
-    "Other"
+    "Visualization",
+    "Programming Languages"
   ],
-  "activationEvents": [],
+  "keywords": [
+    "python",
+    "call-graph",
+    "visualization",
+    "code-analysis",
+    "cytoscape",
+    "code-navigation",
+    "execution-flow"
+  ],
+  "activationEvents": [
+    "onLanguage:python"
+  ],
   "main": "./dist/extension.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/EagleZhen/thought-flow"
+  },
+  "bugs": {
+    "url": "https://github.com/EagleZhen/thought-flow/issues"
+  },
+  "homepage": "https://github.com/EagleZhen/thought-flow#readme",
+  "author": {
+    "name": "csci3100-group-10"
+  },
   "contributes": {
     "commands": [
       {

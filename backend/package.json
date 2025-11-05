@@ -7,9 +7,11 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "author": "csci3100-group-10",
   "type": "commonjs",
+  "engines": {
+    "vscode": "^0.0.0"
+  },
   "dependencies": {
     "firebase-admin": "^13.5.0"
   },
