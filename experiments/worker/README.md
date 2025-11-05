@@ -26,6 +26,19 @@ Workers are designed for **edge computing** (lightweight, fast responses), but F
 
 Better approach: **Vercel** (Node.js platform where firebase-admin works natively).
 
+## Commands
+
+```bash
+# Install dependencies
+npm install
+
+# Run locally (http://localhost:8787)
+npm run dev
+
+# Deploy to Cloudflare
+npm run deploy
+```
+
 ## Key Takeaway
 Not every platform is suitable for every use case. Cloud platforms have architectural assumptions - know them before committing.
 
