@@ -10,6 +10,9 @@
   "author": "csci3100-group-10",
   "license": "",
   "type": "commonjs",
+  "engines": {
+    "vscode": "^0.0.0"
+  },
   "dependencies": {
     "firebase-admin": "^13.5.0"
   },
