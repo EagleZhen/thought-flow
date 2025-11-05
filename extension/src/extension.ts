@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import { showGraphView } from "@/graph";
+import { getGitHubSession } from "@/license";
 import type { CytoscapeGraph } from "@/types";
 
 export function activate(context: vscode.ExtensionContext) {
@@ -48,6 +49,46 @@ export function activate(context: vscode.ExtensionContext) {
       };
 
       showGraphView(context, stubGraph, output);
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("thoughtflow.debug.testGitHubAuth", async () => {
+      output.appendLine("Testing GitHub Authentication...");
+
+      const session = await getGitHubSession();
+
+      if (session) {
+        output.appendLine(`✅ GitHub User ID: ${session.account.id}`); // GitHub numeric ID
+        output.appendLine(`✅ GitHub User Name: ${session.account.label}`); // GitHub username
+      } else {
+        output.appendLine("❌ Failed to get GitHub session");
+      }
+
+      output.show();
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("thoughtflow.debug.testDatabase", async () => {
+      const session = await getGitHubSession();
+      if (!session) {
+        output.appendLine("❌ Failed to get GitHub session");
+        output.show();
+        return;
+      }
+
+      output.appendLine(`Got session: ${session.account.id} (${session.account.label})`);
+      const account = await getOrCreateAccount(session.account.id, session.accessToken);
+      if (!account) {
+        output.appendLine("❌ Failed to get or create account - check console for errors");
+        output.show();
+        return;
+      }
+
+      output.appendLine(`✅ Tier: ${account.tier}`);
+      output.appendLine(`✅ Features: ${account.features.join(", ")}`);
+      output.show();
     })
   );
 }
