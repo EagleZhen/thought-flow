@@ -21,8 +21,9 @@
     "code-navigation",
     "execution-flow"
   ],
+  "activationEvents": [
+    "onLanguage:python"
   ],
-  "activationEvents": [],
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
