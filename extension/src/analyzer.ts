@@ -9,7 +9,7 @@ import * as vscode from "vscode";
  * @param position - The cursor position where the user wants to analyze a symbol
  * @returns An object containing the target symbol and its incoming/outgoing calls, or null if no symbol found
  */
-export async function getCallHierarchy(document: vscode.TextDocument, position: vscode.Position) {
+export async function getCallHierarchyAt(document: vscode.TextDocument, position: vscode.Position) {
   try {
     // Create a cancellation token for async operations
     // This allows us to terminate long-running operations if:
@@ -516,7 +516,7 @@ export const customProvider: vscode.CallHierarchyProvider = {
   },
 };
 
-export async function callHierarchyAnalyzer(
+export async function analyzeCallHierarchy(
   context: vscode.ExtensionContext,
   output: vscode.OutputChannel
 ) {
@@ -549,7 +549,7 @@ export async function callHierarchyAnalyzer(
     // ============================================================
     // STEP 3: Get the call hierarchy for the symbol at cursor
     // ============================================================
-    const result = await getCallHierarchy(editor.document, editor.selection.active);
+    const result = await getCallHierarchyAt(editor.document, editor.selection.active);
     if (!result) {
       // Cursor is not on a valid symbol (e.g., on whitespace or comment)
       vscode.window.showInformationMessage("No symbol found at current position.");

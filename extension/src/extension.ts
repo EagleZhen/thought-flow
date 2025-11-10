@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { callHierarchyAnalyzer } from "@/analyzer";
+import { analyzeCallHierarchy } from "@/analyzer";
 import { showGraphView } from "@/graph";
 import type { CytoscapeGraph } from "@/types";
 
@@ -27,7 +27,7 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.window.showInformationMessage("Open a Python file and place cursor on a function.");
         return;
       }
-      callHierarchyAnalyzer(context, output);
+      analyzeCallHierarchy(context, output);
     })
   );
 
