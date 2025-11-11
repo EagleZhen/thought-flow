@@ -6,12 +6,16 @@ import { getFirestore } from "firebase-admin/firestore";
  * Handles Firebase app initialization with reuse (avoids "app already exists" error)
  */
 export function getDb() {
+  if (!process.env.FIREBASE_SERVICE_ACCOUNT) {
+    throw new Error("FIREBASE_SERVICE_ACCOUNT environment variable is not set");
+  }
+
   let app;
   try {
     app = getApp(); // Try to reuse existing app
   } catch {
     app = initializeApp({
-      credential: cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT!)),
+      credential: cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)),
     });
   }
   return getFirestore(app);
