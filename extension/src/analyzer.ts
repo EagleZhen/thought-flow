@@ -521,12 +521,6 @@ export async function analyzeCallHierarchy(
   output: vscode.OutputChannel
 ) {
   output.show(true); // Show the panel immediately when extension activates
-  context.subscriptions.push(
-    vscode.languages.registerCallHierarchyProvider(
-      { scheme: "file", language: "python" },
-      customProvider
-    )
-  );
 
   try {
     output.appendLine("🚀 Command started");

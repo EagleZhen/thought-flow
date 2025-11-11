@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { analyzeCallHierarchy } from "@/analyzer";
+import { analyzeCallHierarchy, customProvider } from "@/analyzer";
 import { showGraphView } from "@/graph";
 import type { CytoscapeGraph } from "@/types";
 
@@ -22,6 +22,13 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand("thoughtflow.debug.testAnalyzer", async () => {
       output.appendLine("Testing call hierarchy analyzer...");
+      context.subscriptions.push(
+        vscode.languages.registerCallHierarchyProvider(
+          { scheme: "file", language: "python" },
+          customProvider
+        )
+      );
+
       const editor = vscode.window.activeTextEditor;
       if (!editor) {
         vscode.window.showInformationMessage("Open a Python file and place cursor on a function.");
