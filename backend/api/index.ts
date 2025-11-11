@@ -14,6 +14,7 @@ async function verifyGitHubToken(
     const response = await fetch("https://api.github.com/user", {
       headers: {
         Authorization: `Bearer ${githubToken}`,
+        "User-Agent": "ThoughtFlow",
       },
     });
 
