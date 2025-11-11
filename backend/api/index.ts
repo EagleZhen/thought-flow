@@ -38,8 +38,9 @@ async function verifyGitHubToken(
 
 export default async function handler(req: any, res: any) {
   try {
-    // Extract userId and githubToken from request body
-    const { userId, githubToken } = req.body;
+    // Extract and validate request body
+    const { userId, githubToken } = req.body as { userId?: string; githubToken?: string };
+
     if (!userId || !githubToken) {
       return res.status(400).json({ error: "Missing userId or githubToken" });
     }
