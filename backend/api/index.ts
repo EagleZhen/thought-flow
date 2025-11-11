@@ -1,19 +1,8 @@
-import { initializeApp, getApp, cert } from "firebase-admin/app";
-import { getFirestore } from "firebase-admin/firestore";
+import { getDb } from "./firebase";
 
 export default async function handler(req: any, res: any) {
   try {
-    try {
-    let app;
-    try {
-      app = getApp(); // Avoid re-initialization
-    } catch {
-      app = initializeApp({
-        credential: cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT!)),
-      });
-    }
-
-    const db = getFirestore(app);
+    const db = getDb();
     const testDoc = await db.collection("accounts").doc("test").get();
 
     return res.json({
