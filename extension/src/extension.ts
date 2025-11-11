@@ -77,28 +77,28 @@ export function activate(context: vscode.ExtensionContext) {
     })
   );
 
-  context.subscriptions.push(
-    vscode.commands.registerCommand("thoughtflow.debug.testDatabase", async () => {
-      const session = await getGitHubSession();
-      if (!session) {
-        output.appendLine("❌ Failed to get GitHub session");
-        output.show();
-        return;
-      }
+  // context.subscriptions.push(
+  //   vscode.commands.registerCommand("thoughtflow.debug.testDatabase", async () => {
+  //     const session = await getGitHubSession();
+  //     if (!session) {
+  //       output.appendLine("❌ Failed to get GitHub session");
+  //       output.show();
+  //       return;
+  //     }
 
-      output.appendLine(`Got session: ${session.account.id} (${session.account.label})`);
-      const account = await getOrCreateAccount(session.account.id, session.accessToken);
-      if (!account) {
-        output.appendLine("❌ Failed to get or create account - check console for errors");
-        output.show();
-        return;
-      }
+  //     output.appendLine(`Got session: ${session.account.id} (${session.account.label})`);
+  //     const account = await getOrCreateAccount(session.account.id, session.accessToken);
+  //     if (!account) {
+  //       output.appendLine("❌ Failed to get or create account - check console for errors");
+  //       output.show();
+  //       return;
+  //     }
 
-      output.appendLine(`✅ Tier: ${account.tier}`);
-      output.appendLine(`✅ Features: ${account.features.join(", ")}`);
-      output.show();
-    })
-  );
+  //     output.appendLine(`✅ Tier: ${account.tier}`);
+  //     output.appendLine(`✅ Features: ${account.features.join(", ")}`);
+  //     output.show();
+  //   })
+  // );
 }
 
 export function deactivate() {}
