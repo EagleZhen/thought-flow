@@ -85,6 +85,119 @@ export function escapeRegExp(str: string): string {
 }
 
 /**
+ * Determine whether the cursor is positioned on a Python function definition.
+ *
+ * Strategy:
+ * 1. Check the word at the cursor and test the current line against a
+ *    `def <name>(` pattern.
+ * 2. If that fails, fall back to `vscode.prepareCallHierarchy` (so other
+ *    language providers can participate) and verify the returned item's
+ *    selectionRange line contains a `def` for the same name.
+ */
+export async function isCursorOnDefinition(
+  document: vscode.TextDocument,
+  position: vscode.Position
+): Promise<boolean> {
+  const wordRange = document.getWordRangeAtPosition(position);
+  if (!wordRange) {
+    return false;
+  }
+
+  const name = document.getText(wordRange);
+
+  // Quick line-based detection
+  const lineText = document.lineAt(position.line).text;
+  const defPattern = new RegExp("^\\s*def\\s+" + escapeRegExp(name) + "\\s*\\(");
+  if (defPattern.test(lineText)) {
+    return true;
+  }
+
+  // Fallback: ask VS Code providers and inspect the returned item's selection
+  try {
+    const items = await vscode.commands.executeCommand<vscode.CallHierarchyItem[]>(
+      "vscode.prepareCallHierarchy",
+      document.uri,
+      position
+    );
+    if (!items || items.length === 0) {
+      return false;
+    }
+    const selLine = items[0].selectionRange.start.line;
+    const selLineText = document.lineAt(selLine).text;
+    return defPattern.test(selLineText);
+  } catch (e) {
+    return false;
+  }
+}
+
+/**
+ * Find the nearest function definition upward in the document for `name` and
+ * return a CallHierarchyItem pointing at that definition, or undefined.
+ */
+export function findNearestDefinitionCallHierarchyItem(
+  document: vscode.TextDocument,
+  position: vscode.Position,
+  name: string
+): vscode.CallHierarchyItem | undefined {
+  // Generic def matcher for nearest-enclosing search (captures function name)
+  const anyDefPattern = /^\s*def\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(/;
+
+  // Start with the indentation of the clicked line. We'll ignore any lines
+  // that have indentation >= currentIndent. When we encounter a line with
+  // indentation < currentIndent, we check it for a `def` and, if not a def,
+  // lower currentIndent to that line's indent and continue searching upward.
+  let currentIndent = document.lineAt(position.line).firstNonWhitespaceCharacterIndex;
+
+  for (let ln = position.line - 1; ln >= 0; ln--) {
+    const line = document.lineAt(ln);
+    const text = line.text;
+
+    // Skip blank lines
+    if (!text.trim()) {
+      continue;
+    }
+
+    const indent = line.firstNonWhitespaceCharacterIndex;
+
+    // Ignore lines that are at the same or deeper indentation than where we clicked
+    if (indent >= currentIndent) {
+      continue;
+    }
+
+    const m = anyDefPattern.exec(text);
+
+    // Now this line is less-indented than the last checkpoint. Check if it's a def
+    if (m) {
+      // Emit debug information to the extension output channel when available
+      const foundName = m[1];
+
+      const startChar = text.indexOf(foundName);
+      const range = new vscode.Range(
+        new vscode.Position(ln, startChar >= 0 ? startChar : 0),
+        new vscode.Position(ln, (startChar >= 0 ? startChar : 0) + foundName.length)
+      );
+      return new vscode.CallHierarchyItem(
+        vscode.SymbolKind.Function,
+        foundName,
+        "",
+        document.uri,
+        range,
+        range
+      );
+    }
+
+    // Not a def — lower the currentIndent to this line's indent and continue
+    currentIndent = indent;
+    // If we've reached top-level (indent 0) and it wasn't a def, there is no enclosing def
+    if (currentIndent === 0) {
+      break;
+    }
+  }
+
+  return undefined;
+}
+
+/**
  * Custom Call Hierarchy Provider for Python files. (The real functionality)
  */
 export const customProvider: vscode.CallHierarchyProvider = {
