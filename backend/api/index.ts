@@ -1,12 +1,15 @@
-import { getDb } from "./firebase";
+import { getOrCreateAccount } from "./firebase";
 
 /**
  * Verify GitHub OAuth token is valid and belongs to the claimed user
  * @param githubToken - GitHub OAuth access token (from VS Code auth provider)
  * @param userId - Claimed GitHub user ID (numeric string)
- * @returns true if token is valid and matches userId, false otherwise
+ * @returns GitHub user data { id, login } if valid and matches userId, null otherwise
  */
-async function verifyGitHubToken(githubToken: string, userId: string): Promise<boolean> {
+async function verifyGitHubToken(
+  githubToken: string,
+  userId: string
+): Promise<{ id: number; login: string } | null> {
   try {
     const response = await fetch("https://api.github.com/user", {
       headers: {
@@ -16,29 +19,44 @@ async function verifyGitHubToken(githubToken: string, userId: string): Promise<b
     });
 
     if (!response.ok) {
-      return false; // Token is invalid or expired
+      return null; // Token is invalid or expired
     }
 
-    const githubUser = (await response.json()) as { id: number };
-    return githubUser.id.toString() === userId; // Verify ID matches
+    const githubUser = (await response.json()) as { id: number; login: string };
+
+    // Verify ID matches claimed userId
+    if (githubUser.id.toString() !== userId) {
+      return null; // ID mismatch - token doesn't belong to claimed user
+    }
+
+    return githubUser; // Return both id and login
   } catch (error) {
     console.error("GitHub verification error:", error);
-    return false; // Network or parsing error
+    return null; // Network or parsing error
   }
 }
 
 export default async function handler(req: any, res: any) {
   try {
-    const db = getDb();
-    const testDoc = await db.collection("accounts").doc("test").get();
+    // Extract userId and githubToken from request body
+    const { userId, githubToken } = req.body;
+    if (!userId || !githubToken) {
+      return res.status(400).json({ error: "Missing userId or githubToken" });
+    }
 
-    return res.json({
-      message: "Firebase works!",
-      testDocExists: testDoc.exists,
-      data: testDoc.data(),
-    });
+    // Verify GitHub token is valid and matches userId
+    // Returns GitHub user data if valid, null otherwise
+    const githubUser = await verifyGitHubToken(githubToken, userId);
+    if (!githubUser) {
+      return res.status(401).json({ error: "Invalid GitHub token" });
+    }
+
+    // Token is valid - get or create account with GitHub username
+    const account = await getOrCreateAccount(userId, githubUser.login);
+    return res.json(account);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    return res.status(500).json({ error: errorMessage });
+    console.error("Request error:", errorMessage);
+    return res.status(500).json({ error: "Internal server error" });
   }
 }
