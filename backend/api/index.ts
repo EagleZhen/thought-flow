@@ -50,6 +50,11 @@ export default async function handler(req: any, res: any) {
       return res.status(400).json({ error: "Missing userId or githubToken" });
     }
 
+    // Validate userId is numeric
+    if (!/^\d+$/.test(userId)) {
+      return res.status(400).json({ error: "Invalid userId format" });
+    }
+
     // Verify GitHub token is valid and matches userId
     // Returns GitHub user data if valid, null otherwise
     const githubUser = await verifyGitHubToken(githubToken, userId);
