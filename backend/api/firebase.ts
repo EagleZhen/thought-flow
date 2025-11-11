@@ -1,5 +1,5 @@
 import { initializeApp, getApp, cert } from "firebase-admin/app";
-import { getFirestore } from "firebase-admin/firestore";
+import { getFirestore, GrpcStatus } from "firebase-admin/firestore";
 
 /**
  * Get Firestore instance
@@ -45,7 +45,7 @@ export async function getOrCreateAccount(
     return { tier: "free", login };
   } catch (error: any) {
     // Document already exists - read and return it
-    if (error.code === "ALREADY_EXISTS") {
+    if (error.code === GrpcStatus.ALREADY_EXISTS) {
       const accountSnap = await accountRef.get();
       const data = accountSnap.data() as { tier: string; login: string };
       return { tier: data.tier, login: data.login };
