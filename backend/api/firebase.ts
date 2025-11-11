@@ -19,31 +19,31 @@ export function getDb() {
 
 /**
  * Get existing account or create new one with free tier
- * @param userId - GitHub numeric user ID
- * @param userName - GitHub username
- * @returns Account data with tier and userName
+ * @param userId - GitHub numeric user ID (as string)
+ * @param login - GitHub username (login field)
+ * @returns Account data with tier and login
  */
 export async function getOrCreateAccount(
   userId: string,
-  userName: string
-): Promise<{ tier: string; userName: string }> {
+  login: string
+): Promise<{ tier: string; login: string }> {
   const db = getDb();
   const accountRef = db.collection("accounts").doc(userId);
   const accountSnap = await accountRef.get();
 
   // Account exists - return it
   if (accountSnap.exists) {
-    const data = accountSnap.data() as { tier: string; userName: string };
-    return { tier: data.tier, userName: data.userName };
+    const data = accountSnap.data() as { tier: string; login: string };
+    return { tier: data.tier, login: data.login };
   }
 
   // New account - create with free tier
   await accountRef.set({
     githubUserId: userId,
-    userName: userName,
+    login: login,
     tier: "free",
     createdAt: new Date(),
   });
 
-  return { tier: "free", userName: userName };
+  return { tier: "free", login: login };
 }
