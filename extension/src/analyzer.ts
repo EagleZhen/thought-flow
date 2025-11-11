@@ -685,7 +685,9 @@ export async function analyzeCallHierarchy(
     // Extract function information
     const funcName = result.function.name;
     const funcFile = toRel(result.function.uri);
-    const funcLine = result.function.range.start.line + 1; // +1 for 1-indexed display
+    // Use selectionRange.start to get the exact name location (more reliable
+    // for items constructed from a definition line)
+    const funcLine = result.function.selectionRange.start.line + 1; // +1 for 1-indexed display
 
     // Create the data object with incoming and outgoing calls
     const data = {
