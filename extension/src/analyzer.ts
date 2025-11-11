@@ -386,40 +386,9 @@ export const customProvider: vscode.CallHierarchyProvider = {
       const lines = text.split(/\r?\n/); // Split into lines (handle both \n and \r\n)
 
       // ============================================================
-      // STEP 1: Build a map of all function definitions in this file
-      // ============================================================
-      // This helps us identify which function contains each call site.
-      // Structure: { name: "function_name", start: line_number, end: line_number }
-      const defs: { name: string; start: number; end: number }[] = [];
-
-      // Process each line to find function definitions
-      for (let i = 0; i < lines.length; i++) {
-        // Match function definition lines: "def function_name("
-        const match = /^\s*def\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(/.exec(lines[i]);
-        if (match) {
-          // Found a function definition at line i
-          const funcName = match[1];
-
-          // Determine the function's boundaries using Python's indentation rules
-          // A function ends when we encounter a line with equal or less indentation
-          const indent = lines[i].search(/\S/); // Find first non-whitespace character
-          let end = i + 1;
-
-          // Walk forward through lines to find where the function ends
-          while (end < lines.length) {
-            const line = lines[end];
-            // If line is non-empty AND has indentation <= function's indentation, function ended
-            if (line.trim() && line.search(/\S/) <= indent) break;
-            end++;
-          }
-
-          // Record this function's boundaries
-          defs.push({ name: funcName, start: i, end: end - 1 });
-        }
-      }
-
-      // ============================================================
-      // STEP 2: Find all calls to the target function using regex
+      // STEP 1: Find all calls to the target function using regex
+      // (We no longer pre-build a defs map; instead we use
+      // findNearestDefinitionCallHierarchyItem to resolve the caller)
       // ============================================================
       // Pattern: word boundary + target name + optional whitespace + "("
       // Example: "foo(" or "foo (" or "result = foo("
@@ -437,82 +406,56 @@ export const customProvider: vscode.CallHierarchyProvider = {
         const pos = doc.positionAt(match.index);
         const line = pos.line;
 
-        // ============================================================
-        // FILTER 1: Skip function definition lines
-        // ============================================================
-        // If the match is on a "def foo(" line, it's not a call to foo,
-        // it's the definition of foo itself. Skip it.
+        // FILTER: Skip function definition lines (don't treat def as a call)
         if (defLinePattern.test(lines[line] ?? "")) {
           continue;
         }
 
-        // ============================================================
-        // STEP 3: Determine which function contains this call site
-        // ============================================================
-        let caller = "<module>"; // Default: module-level (not inside any function)
-        let callerDefLine = -1; // Track where the caller function is defined
-
-        // Check if this call is inside any of the functions we found
-        for (const def of defs) {
-          // Call is inside this function if:
-          // - Call line is after the function's def line
-          // - Call line is before or at the function's end line
-          if (line > def.start && line <= def.end) {
-            caller = def.name;
-            callerDefLine = def.start;
-          }
-        }
-
-        // ============================================================
-        // FILTER 2: Skip self-recursive calls within the same function
-        // ============================================================
-        // If the caller is the same as the target, this is a recursive call
-        // (the function calling itself from within its own body).
-        // We skip these to prevent the function from appearing in its own
-        // incoming list, which would be confusing.
-        //
-        // Example: In "def factorial(n): return n * factorial(n-1)",
-        // the call to "factorial" inside "factorial" is skipped.
-        if (caller === targetName) {
-          continue;
-        }
-
-        // ============================================================
-        // STEP 4: Create a CallHierarchyIncomingCall for this call site
-        // ============================================================
-
-        // Create a range for this specific call location
-        // Try to get the word range first, or fallback to manual range
+        // Range for the call occurrence
         const range =
           doc.getWordRangeAtPosition(pos) ??
           new vscode.Range(pos, pos.translate(0, targetName.length));
 
-        // Create a range for the caller's definition
-        // If caller is a function, use its def line
-        // If caller is <module>, use the call site itself
-        const callerRange =
-          callerDefLine >= 0
-            ? new vscode.Range(
-                new vscode.Position(callerDefLine, 0),
-                new vscode.Position(callerDefLine, 0)
-              )
-            : range;
+        // Ask the indentation-aware helper for the nearest enclosing def
+        const callerItem = findNearestDefinitionCallHierarchyItem(doc, pos, targetName);
 
-        // Add this incoming call to the results
-        // fromRanges: [range] indicates where in the caller's code this call happens
-        results.push(
-          new vscode.CallHierarchyIncomingCall(
-            new vscode.CallHierarchyItem(
-              vscode.SymbolKind.Function,
-              caller, // Name of the calling function
-              "", // Detail string (empty)
-              fileUri, // File containing the caller
-              callerRange, // Full range of the caller's definition
-              callerRange // Selection range (same as full range)
-            ),
-            [range] // Array of ranges where this call appears (just one range in our case)
-          )
-        );
+        // If the caller is the same as the target (self-recursive), skip it
+        if (callerItem && callerItem.name === targetName) {
+          continue;
+        }
+
+        if (callerItem) {
+          // Use the found function definition as the caller
+          const callerRange = callerItem.selectionRange;
+          results.push(
+            new vscode.CallHierarchyIncomingCall(
+              new vscode.CallHierarchyItem(
+                vscode.SymbolKind.Function,
+                callerItem.name,
+                "",
+                fileUri,
+                callerRange,
+                callerRange
+              ),
+              [range]
+            )
+          );
+        } else {
+          // Module-level caller: no enclosing function found
+          results.push(
+            new vscode.CallHierarchyIncomingCall(
+              new vscode.CallHierarchyItem(
+                vscode.SymbolKind.Function,
+                "<module>",
+                "",
+                fileUri,
+                range,
+                range
+              ),
+              [range]
+            )
+          );
+        }
       }
     }
 
