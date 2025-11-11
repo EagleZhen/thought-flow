@@ -29,21 +29,24 @@ export async function getOrCreateAccount(
 ): Promise<{ tier: string; login: string }> {
   const db = getDb();
   const accountRef = db.collection("accounts").doc(userId);
-  const accountSnap = await accountRef.get();
 
-  // Account exists - return it
-  if (accountSnap.exists) {
-    const data = accountSnap.data() as { tier: string; login: string };
-    return { tier: data.tier, login: data.login };
+  try {
+    // Try to create new account
+    await accountRef.create({
+      githubUserId: userId,
+      login: login,
+      tier: "free",
+      createdAt: new Date(),
+    });
+    return { tier: "free", login };
+  } catch (error: any) {
+    // Document already exists - read and return it
+    if (error.code === "ALREADY_EXISTS") {
+      const accountSnap = await accountRef.get();
+      const data = accountSnap.data() as { tier: string; login: string };
+      return { tier: data.tier, login: data.login };
+    }
+    // Re-throw other errors (network, permission, etc.)
+    throw error;
   }
-
-  // New account - create with free tier
-  await accountRef.set({
-    githubUserId: userId,
-    login: login,
-    tier: "free",
-    createdAt: new Date(),
-  });
-
-  return { tier: "free", login: login };
 }
