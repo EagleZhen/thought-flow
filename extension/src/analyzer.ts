@@ -11,53 +11,122 @@ import * as vscode from "vscode";
  */
 export async function getCallHierarchyAt(document: vscode.TextDocument, position: vscode.Position) {
   try {
-    // Create a cancellation token for async operations
-    // This allows us to terminate long-running operations if:
-    // 1. The user triggers too many requests in rapid succession
-    // 2. The operation takes too long (hangs on a large codebase)
-    // 3. The user cancels the operation manually
-    const cts = new vscode.CancellationTokenSource();
+    // First: detect whether cursor is directly on a function definition
+    const onDefinition = await isCursorOnDefinition(document, position);
 
-    // Step 1: Prepare call hierarchy - identify the symbol at cursor position
-    // This returns either a single CallHierarchyItem or an array of them
-    // (array case occurs when multiple symbols share the same name/position,
-    // or when the cursor is on a location where there are multiple valid interpretations)
-    const callHierarchy = await customProvider.prepareCallHierarchy(document, position, cts.token);
+    // Prepare call hierarchy item at cursor (lets language providers participate)
+    const hierarchy = await vscode.commands.executeCommand<vscode.CallHierarchyItem[]>(
+      "vscode.prepareCallHierarchy",
+      document.uri,
+      position
+    );
 
-    // If we got an array, take the first item; otherwise use the single item (more common)
-    const targetItem = Array.isArray(callHierarchy) ? callHierarchy[0] : callHierarchy;
-
-    // Check if we found a valid symbol at the cursor position
-    // If the cursor is on whitespace or an invalid location, targetItem will be undefined
-    if (!targetItem) {
-      cts.dispose(); // Clean up before returning
+    if (!hierarchy || hierarchy.length === 0) {
+      console.log("No symbol found at this position");
       return null;
     }
 
-    // Step 2: Get incoming calls (who calls this function)
-    // This searches the entire workspace for function calls to the target symbol
-    const incomingCalls = await customProvider.provideCallHierarchyIncomingCalls(
-      targetItem,
-      cts.token
-    );
+    const item = hierarchy[0]; // The function (or symbol) at cursor position
 
-    // Step 3: Get outgoing calls (what functions this function calls)
-    // This scans the target function's body to find all function calls it makes
-    const outgoingCalls = await customProvider.provideCallHierarchyOutgoingCalls(
-      targetItem,
-      cts.token
-    );
+    // We'll return either the prepared item or a nearest-definition item
+    // (for incoming calls when cursor is not on the definition).
+    let incomingCalls: vscode.CallHierarchyIncomingCall[] | undefined | null;
+    let outgoingCalls: vscode.CallHierarchyOutgoingCall[] | undefined | null;
+    let resultFunctionItem: vscode.CallHierarchyItem = item;
 
-    // Clean up the cancellation token to free resources
-    cts.dispose();
+    if (onDefinition) {
+      // Cursor is on the function definition: use the item directly for both
+      incomingCalls = await vscode.commands.executeCommand<vscode.CallHierarchyIncomingCall[]>(
+        "vscode.provideIncomingCalls",
+        item
+      );
+      outgoingCalls = await vscode.commands.executeCommand<vscode.CallHierarchyOutgoingCall[]>(
+        "vscode.provideOutgoingCalls",
+        item
+      );
+    } else {
+      // Cursor is not on definition. For outgoing calls, use the prepared item
+      // (so callers can still inspect callees from the symbol under cursor).
+      outgoingCalls = await vscode.commands.executeCommand<vscode.CallHierarchyOutgoingCall[]>(
+        "vscode.provideOutgoingCalls",
+        item
+      );
 
-    // Return the complete call hierarchy data structure
-    // callers: functions that call the target (incoming edges)
-    // callees: functions that the target calls (outgoing edges)
+      // For incoming calls, prefer the nearest definition upward in the
+      // current document. If found, use that definition as the function
+      // shown in the JSON result and request incoming calls for it.
+      let defItem = findNearestDefinitionCallHierarchyItem(document, position, item.name);
+      if (defItem) {
+        resultFunctionItem = defItem;
+        // Use the local customProvider when we created the CallHierarchyItem
+        // ourselves. Some language providers will reject items they did not
+        // create (resulting in "invalid item" errors), so call our
+        // provider implementation directly.
+        incomingCalls = await customProvider.provideCallHierarchyIncomingCalls(
+          defItem,
+          undefined as any
+        );
+
+        // If the user clicked on a call site inside the same function (e.g.
+        // recursive call), our provider intentionally filters out
+        // self-recursive callers. To ensure the JSON shows the local
+        // definition as a caller (as requested), add a synthetic incoming
+        // call pointing from the definition to the clicked call site.
+        try {
+          // Ensure incomingCalls is an array
+          if (!incomingCalls) {
+            incomingCalls = [];
+          }
+
+          // If the click was in the same document as the defItem
+          if (document.uri.toString() === defItem.uri.toString()) {
+            // Position of the clicked call (word range or single position)
+            const callRange =
+              document.getWordRangeAtPosition(position) ?? new vscode.Range(position, position);
+
+            // If there's not already an incoming entry from this same function,
+            // push one that points from the definition line to the call site.
+            const alreadyHas = incomingCalls.some((c) => c.from.name === defItem!.name);
+            if (!alreadyHas) {
+              const callerRange = defItem.selectionRange;
+              const synthetic = new vscode.CallHierarchyIncomingCall(
+                new vscode.CallHierarchyItem(
+                  vscode.SymbolKind.Function,
+                  defItem.name,
+                  "",
+                  defItem.uri,
+                  callerRange,
+                  callerRange
+                ),
+                [callRange]
+              );
+
+              // If the click is inside the definition's file and appears to be
+              // inside the function body (position line > def line), prefer
+              // showing only the synthetic incoming (the definition) in the
+              // JSON result — remove external callers like `main`.
+              if (position.line > defItem.selectionRange.start.line) {
+                incomingCalls = [synthetic];
+              } else {
+                incomingCalls.push(synthetic);
+              }
+            }
+          }
+        } catch (e) {
+          // Non-fatal: if constructing the synthetic incoming fails, ignore
+        }
+      } else {
+        // The user requested that when there is no enclosing `def` we
+        // should produce an empty incoming list instead of querying
+        // language providers. Set incomingCalls to an empty array.
+        incomingCalls = [];
+      }
+    }
+
     return {
-      function: targetItem,
-      callers: incomingCalls || [],
-      callees: outgoingCalls || [],
+      function: resultFunctionItem,
+      callers: incomingCalls,
+      callees: outgoingCalls,
     };
   } catch (error) {
     console.error("Error in getCallHierarchy:", error);
