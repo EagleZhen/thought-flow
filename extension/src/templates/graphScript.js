@@ -1,14 +1,31 @@
+// Path: extension/src/templates/graphScript.js
+
+const vscode = acquireVsCodeApi();
+
+// Define cy at the top level so all functions can access it
+let cy;
+
+/**
+ * Helper function to apply 'expandable' class to nodes that have hidden neighbors.
+ * @param {cytoscape.Collection} nodes - The nodes to check.
+ */
+function updateExpandableNodes(nodes) {
+  // We will implement this later when we have real multi-level data
+}
+
 /**
  * Initializes the Cytoscape graph with the provided data.
- * @param {object} graphData - The graph data object, expected format like { nodes: [...], edges: [...] }
- * or directly the elements array Cytoscape expects.
+ * @param {object} graphData - The graph data object { nodes: [...], edges: [...] }
+ * @param {string} targetNodeId - The ID of the node that the user clicked on.
  */
-function initializeCytoscape(graphData) {
-  // Check if graphData has nodes and edges properties, otherwise assume it's the elements array directly
+function initializeCytoscape(graphData, targetNodeId) {
+  console.log("Initializing graph with data:", graphData);
+  console.log("Target Node ID received:", targetNodeId);
+
   const elements =
     graphData && Array.isArray(graphData.nodes) && Array.isArray(graphData.edges)
       ? [...graphData.nodes, ...graphData.edges]
-      : graphData; // Fallback assuming graphData is already the elements array
+      : graphData;
 
   if (!elements || !Array.isArray(elements)) {
     console.error("Invalid graph data format received:", graphData);
@@ -17,70 +34,95 @@ function initializeCytoscape(graphData) {
     return;
   }
 
+  const targetNodeSelector = `node[id = "${targetNodeId}"]`;
+  console.log("Using selector for target node:", targetNodeSelector);
+
   try {
-    const cy = cytoscape({
-      container: document.getElementById("cy"), // The div where the graph will be rendered
-
-      elements: elements, // The nodes and edges data
-
+    // Assign to the top-level 'cy' variable
+    cy = cytoscape({
+      container: document.getElementById("cy"),
+      elements: elements,
       style: [
-        // Define the visual style of nodes and edges
         {
-          selector: "node", // Style for all nodes
+          selector: "node", // Default node style
           style: {
             "background-color": "#4376c2",
-            label: "data(label)", // Use 'label' if available, otherwise 'id'
-            color: "#7a96c0",
+            label: "data(label)",
+            color: "#000000",
+            shape: "rectangle",
             "font-family": "Consolas",
+            "transition-property": "background-color, border-color, border-width, border-style",
+            "transition-duration": "0.2s",
           },
         },
         {
-          selector: "edge", // Style for all edges
+          selector: targetNodeSelector, // Style for our Target Node
+          style: {
+            "background-color": "#d9a40e",
+            "border-color": "#FFF",
+            "border-width": 2,
+            color: "#000000",
+            "z-index": 10,
+          },
+        },
+        {
+          // Style for nodes that can be expanded
+          selector: "node.expandable",
+          style: {
+            "border-color": "#e63946",
+            "border-width": 3,
+            "border-style": "dashed",
+          },
+        },
+        {
+          selector: "edge", // Default edge style
           style: {
             width: 3,
             "line-color": "#7a96c0",
-            "target-arrow-color": "#7a96c0", // Color of the arrow head
-            "target-arrow-shape": "triangle", // Shape of the arrow head
-            "curve-style": "bezier", // How the edge curves ('bezier', 'straight', 'haystack', etc.)
+            "target-arrow-color": "#7a96c0",
+            "target-arrow-shape": "triangle",
+            "curve-style": "bezier",
             opacity: 0.5,
           },
         },
-        // Add more style rules as needed
       ],
-      ///*
       layout: {
-        // Define how nodes are positioned
-        name: "cose", // 'cose' layout (Compound Spring Embedder) is good for general graphs
-        idealEdgeLength: 100, // Preferred distance between connected nodes
-        nodeOverlap: 20, // Amount of space between nodes
-        refresh: 20, // Number of iterations per animation frame
-        fit: true, // Whether to fit the graph to the viewport
-        padding: 30, // Padding around the graph
-        randomize: false, // Whether to randomize node positions before layout
-        componentSpacing: 100, // Space between disconnected components
-        nodeRepulsion: 400000, // How much nodes push each other away
-        edgeElasticity: 100, // How much edges pull nodes together
-        nestingFactor: 5, // How tightly grouped parent nodes contain child nodes
-        gravity: 80, // Attracts nodes to the center
-        numIter: 1000, // Maximum number of layout iterations
-        initialTemp: 200, // Initial temperature (for simulated annealing)
-        coolingFactor: 0.95, // How quickly temperature cools
-        minTemp: 1.0, // Minimum temperature
-        // Other layout options: 'grid', 'circle', 'breadthfirst', 'concentric'
+        name: "cose",
+        idealEdgeLength: 100,
+        nodeOverlap: 20,
+        refresh: 20,
+        fit: true,
+        padding: 30,
+        randomize: false,
+        componentSpacing: 100,
+        nodeRepulsion: 400000,
+        edgeElasticity: 100,
+        nestingFactor: 5,
+        gravity: 80,
+        numIter: 1000,
+        initialTemp: 200,
+        coolingFactor: 0.95,
+        minTemp: 1.0,
       },
-      //*/
     });
 
-    // --- Add Interactivity Below ---
+    // --- Interactivity ---
 
-    // Example: Log node ID when a node is clicked
+    // When a node is tapped...
     cy.on("tap", "node", function (evt) {
       const node = evt.target;
-      console.log("Tapped node id: " + node.id() + ", label: " + node.data("label"));
-      // You can add more interactive features here, e.g., highlight neighbors, show info panel
+      const nodeId = node.id(); // Get the ID (it's already encoded)
+      console.log("Tapped node id: " + nodeId + ", label: " + node.data("label"));
+
+      // Send a message BACK to the extension, requesting to expand this node.
+      vscode.postMessage({
+        type: "NODE_TAPPED",
+        payload: {
+          id: decodeURIComponent(nodeId), // Send the clean, un-encoded ID
+        },
+      });
     });
 
-    // Example: Log edge info when an edge is clicked
     cy.on("tap", "edge", function (evt) {
       const edge = evt.target;
       console.log("Tapped edge from " + edge.source().id() + " to " + edge.target().id());
@@ -92,17 +134,41 @@ function initializeCytoscape(graphData) {
   }
 } // end of initializeCytoscape function
 
-// Listen for graph data from extension via postMessage
+// Listen for graph data from extension
 window.addEventListener("message", (event) => {
   const message = event.data;
 
   if (message.type === "INIT_GRAPH") {
     try {
-      initializeCytoscape(message.data);
+      // Pass both the graph data AND the new targetId
+      initializeCytoscape(message.data, message.targetId);
     } catch (error) {
       console.error("Error initializing graph:", error);
       document.body.innerHTML =
         '<p style="color: red; padding: 10px;">Error loading graph data.</p>';
+    }
+  } else if (message.type === "ADD_ELEMENTS") {
+    // This is the new logic to handle expanding a node
+    if (cy && message.data) {
+      console.log("Adding new elements:", message.data);
+
+      // Add the new nodes and edges to the graph
+      cy.add(message.data.nodes);
+      cy.add(message.data.edges);
+
+      // Re-run the layout so the graph adjusts nicely
+      cy.layout({
+        name: "cose",
+        fit: true,
+        padding: 30,
+        animate: true, // Animate the transition
+        animationDuration: 500, // 0.5 second animation
+        idealEdgeLength: 100,
+        nodeOverlap: 20,
+        componentSpacing: 100,
+        nodeRepulsion: 400000,
+        edgeElasticity: 100,
+      }).run();
     }
   }
 });
