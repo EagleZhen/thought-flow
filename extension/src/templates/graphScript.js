@@ -1,5 +1,3 @@
-// Path: extension/src/templates/graphScript.js
-
 const vscode = acquireVsCodeApi();
 
 // Define cy at the top level so all functions can access it
@@ -148,27 +146,64 @@ window.addEventListener("message", (event) => {
         '<p style="color: red; padding: 10px;">Error loading graph data.</p>';
     }
   } else if (message.type === "ADD_ELEMENTS") {
-    // This is the new logic to handle expanding a node
+    // [FIX] This is the new logic to handle expanding a node
     if (cy && message.data) {
-      console.log("Adding new elements:", message.data);
+      console.log("Received new elements:", message.data);
 
-      // Add the new nodes and edges to the graph
-      cy.add(message.data.nodes);
-      cy.add(message.data.edges);
+      let nodesToAdd = [];
+      if (Array.isArray(message.data.nodes)) {
+        for (const node of message.data.nodes) {
+          // Check if node already exists
+          if (cy.getElementById(node.data.id).empty()) {
+            nodesToAdd.push(node);
+          }
+        }
+      }
 
-      // Re-run the layout so the graph adjusts nicely
-      cy.layout({
-        name: "cose",
-        fit: true,
-        padding: 30,
-        animate: true, // Animate the transition
-        animationDuration: 500, // 0.5 second animation
-        idealEdgeLength: 100,
-        nodeOverlap: 20,
-        componentSpacing: 100,
-        nodeRepulsion: 400000,
-        edgeElasticity: 100,
-      }).run();
+      let edgesToAdd = [];
+      if (Array.isArray(message.data.edges)) {
+        for (const edge of message.data.edges) {
+          // Check if edge already exists
+          if (cy.getElementById(edge.data.id).empty()) {
+            edgesToAdd.push(edge);
+          }
+        }
+      }
+
+      // Only add if there are new nodes or edges
+      if (nodesToAdd.length > 0) {
+        console.log(
+          "Adding new nodes:",
+          nodesToAdd.map((n) => n.data.id)
+        );
+        cy.add(nodesToAdd);
+      }
+      if (edgesToAdd.length > 0) {
+        console.log(
+          "Adding new edges:",
+          edgesToAdd.map((e) => e.data.id)
+        );
+        cy.add(edgesToAdd);
+      }
+
+      // Only re-run layout if something was actually added
+      if (nodesToAdd.length > 0 || edgesToAdd.length > 0) {
+        console.log("Running layout for new elements...");
+        cy.layout({
+          name: "cose",
+          fit: false,
+          padding: 30,
+          animate: true, // Animate the transition
+          animationDuration: 500, // 0.5 second animation
+          idealEdgeLength: 100,
+          nodeOverlap: 20,
+          componentSpacing: 100,
+          nodeRepulsion: 400000,
+          edgeElasticity: 100,
+        }).run();
+      } else {
+        console.log("No new elements to add. Skipping layout.");
+      }
     }
   }
 });

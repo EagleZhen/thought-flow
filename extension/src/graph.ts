@@ -29,12 +29,13 @@ type AnalyzerFunc = (
 const toRel = (uri: vscode.Uri) => vscode.workspace.asRelativePath(uri, false);
 
 /**
- * Helper to convert a VS Code CallHierarchyItem into our internal FunctionCall type.
- * @param item The VS Code CallHierarchyItem.
- * @param range The specific range of the call (optional, defaults to item's main range).
+ * [修复版] 将 VS Code CallHierarchyItem 转换为内部 FunctionCall 类型。
+ * 关键修改：始终使用 item.range (定义位置) 来作为 ID 的一部分，忽略具体的调用行号。
+ * 这确保了同一个函数在图中永远只有一个唯一的节点 ID。
  */
-export function toFuncCall(item: vscode.CallHierarchyItem, range?: vscode.Range): FunctionCall {
-  const line = (range || item.range).start.line + 1; // Convert 0-indexed to 1-indexed
+export function toFuncCall(item: vscode.CallHierarchyItem): FunctionCall {
+  // 始终使用 item.range (定义范围)
+  const line = item.range.start.line + 1;
   return {
     name: item.name,
     filePath: toRel(item.uri),
@@ -53,15 +54,23 @@ export function convertVsCodeHierarchy(rawHierarchy: {
 }): CallHierarchy {
   return {
     target: toFuncCall(rawHierarchy.function),
-    incoming: rawHierarchy.callers.map((c) => toFuncCall(c.from, c.fromRanges[0])),
-    outgoing: rawHierarchy.callees.map((c) => toFuncCall(c.to, c.fromRanges[0])),
+    // [修复] 只传递 item，不传递 range，避免 ID 包含调用位置
+    incoming: rawHierarchy.callers.map((c) => toFuncCall(c.from)),
+    // [修复] 只传递 item，不传递 range
+    outgoing: rawHierarchy.callees.map((c) => toFuncCall(c.to)),
   };
 }
+
+// Encode ID for safe use in HTML/CSS (reversible with decodeURIComponent)
+const encodeId = (id: string) => encodeURIComponent(id);
 
 /**
  * Transforms the backend CallHierarchy data into a Cytoscape.js compatible graph format.
  * @param hierarchy The raw call hierarchy data from the analyzer.
  * @returns A CytoscapeGraph object (nodes and edges) ready for visualization.
+ *
+ * [FIXED] This function now *only* deals with RAW, un-encoded strings for all IDs.
+ * Encoding is handled *only* by the `encodeGraphIds` function.
  */
 export function transformToCytoscapeGraph(hierarchy: CallHierarchy): CytoscapeGraph {
   const nodes: CytoscapeNode[] = [];
@@ -94,10 +103,15 @@ export function transformToCytoscapeGraph(hierarchy: CallHierarchy): CytoscapeGr
   for (const incomingFunc of hierarchy.incoming) {
     const incomingId = getUniqueId(incomingFunc);
     addNode(incomingFunc); // Add the caller node
+
+    // [FIX] Create a unique RAW (un-encoded) edge ID.
+    const edgeId = `edge_${incomingId}_to_${targetId}`;
+
     edges.push({
       data: {
-        source: incomingId,
-        target: targetId,
+        id: edgeId, // <-- Store the RAW ID
+        source: incomingId, // <-- Store the RAW ID
+        target: targetId, // <-- Store the RAW ID
       },
     });
   }
@@ -107,10 +121,15 @@ export function transformToCytoscapeGraph(hierarchy: CallHierarchy): CytoscapeGr
   for (const outgoingFunc of hierarchy.outgoing) {
     const outgoingId = getUniqueId(outgoingFunc);
     addNode(outgoingFunc); // Add the callee node
+
+    // [FIX] Create a unique RAW (un-encoded) edge ID.
+    const edgeId = `edge_${targetId}_to_${outgoingId}`;
+
     edges.push({
       data: {
-        source: targetId,
-        target: outgoingId,
+        id: edgeId, // <-- Store the RAW ID
+        source: targetId, // <-- Store the RAW ID
+        target: outgoingId, // <-- Store the RAW ID
       },
     });
   }
@@ -118,11 +137,10 @@ export function transformToCytoscapeGraph(hierarchy: CallHierarchy): CytoscapeGr
   return { nodes, edges };
 }
 
-// Encode ID for safe use in HTML/CSS (reversible with decodeURIComponent)
-const encodeId = (id: string) => encodeURIComponent(id);
-
 /**
  * Encode all IDs in graph for safe HTML/CSS use.
+ * [FIXED] This function is now the *only* place encoding happens.
+ * It correctly encodes the raw edge IDs from `transformToCytoscapeGraph` once.
  */
 function encodeGraphIds(graph: CytoscapeGraph): CytoscapeGraph {
   return {
@@ -134,6 +152,8 @@ function encodeGraphIds(graph: CytoscapeGraph): CytoscapeGraph {
     })),
     edges: graph.edges.map((edge) => ({
       data: {
+        // [FIX] This now correctly encodes the RAW edge ID just once
+        id: encodeId(edge.data.id!),
         source: encodeId(edge.data.source),
         target: encodeId(edge.data.target),
       },
@@ -142,26 +162,25 @@ function encodeGraphIds(graph: CytoscapeGraph): CytoscapeGraph {
 }
 
 /**
- * Parses a node ID string (e.g., "add @ utils.py:5") into its components.
- * @param id The unique node ID.
- * @returns An object with filePath and line, or null if parsing fails.
+ * Parses a node ID string.
+ * Returns an object with name, filePath, and line.
  */
-function parseNodeId(id: string): { filePath: string; line: number } | null {
+function parseNodeId(id: string): { name: string; filePath: string; line: number } | null {
   try {
-    // Example: "add @ utils.py:5"
-    const parts = id.split(" @ "); // ["add", "utils.py:5"]
-    if (parts.length < 2) return null;
+    const rawId = decodeURIComponent(id);
 
-    const location = parts[parts.length - 1]; // "utils.py:5"
-    const lastColonIndex = location.lastIndexOf(":");
-    if (lastColonIndex === -1) return null;
+    const match = rawId.match(/^(.*?) @ (.*):(\d+)$/);
 
-    const filePath = location.substring(0, lastColonIndex); // "utils.py"
-    const line = parseInt(location.substring(lastColonIndex + 1), 10); // 5
+    if (!match) {
+      console.error(`[Parse Error] ID format mismatch: ${rawId}`);
+      return null;
+    }
 
-    if (!filePath || isNaN(line)) return null;
+    const name = match[1];
+    const filePath = match[2];
+    const line = parseInt(match[3], 10);
 
-    return { filePath, line };
+    return { name, filePath, line };
   } catch (error) {
     console.error(`Error parsing node ID: ${id}`, error);
     return null;
@@ -221,6 +240,7 @@ export function showGraphView(
     panel.webview.html = htmlContent;
 
     // Send the initial graph data
+    // This call now correctly encodes all raw IDs from `graph` exactly once.
     const encodedGraph = encodeGraphIds(graph);
     const encodedTargetId = encodeId(targetNodeId);
 
@@ -235,58 +255,98 @@ export function showGraphView(
       async (message) => {
         switch (message.type) {
           case "NODE_TAPPED":
-            const tappedNodeId = message.payload.id;
-            output.appendLine(`[Webview] Node tapped: ${tappedNodeId}`);
+            const tappedNodeId = message.payload.id; // This is a RAW ID from frontend
+            output.appendLine(`[Webview] Node tapped (Raw): ${tappedNodeId}`);
 
-            // --- This is the new "expand" logic ---
             try {
-              // 1. Parse the node ID to get file and line
               const parsed = parseNodeId(tappedNodeId);
               if (!parsed) {
-                output.appendLine(`[Extension] Could not parse node ID: ${tappedNodeId}`);
+                output.appendLine(`[Extension] ❌ Failed to parse ID: ${tappedNodeId}`);
                 return;
               }
 
-              const { filePath, line } = parsed;
+              const { name, filePath, line } = parsed;
+              output.appendLine(`[Extension] Parsed: Name=${name}, File=${filePath}, Line=${line}`);
 
-              // 2. Get the file's URI and open the document
-              // Note: Assumes file is in the first workspace folder.
-              // A more robust solution would search all workspace folders.
               if (!vscode.workspace.workspaceFolders?.[0]) {
-                output.appendLine("[Extension] No workspace folder open.");
+                output.appendLine("[Extension] ❌ No workspace folder open.");
                 return;
               }
+
+              // Construct absolute path
               const fileUri = vscode.Uri.joinPath(
                 vscode.workspace.workspaceFolders[0].uri,
                 filePath
               );
-              const doc = await vscode.workspace.openTextDocument(fileUri);
+              output.appendLine(`[Extension] Resolving URI: ${fileUri.fsPath}`);
 
-              // 3. Create the position (line is 1-based, Position is 0-based)
-              // We use line-1 and character 0. getCallHierarchyAt will find the symbol on that line.
-              const pos = new vscode.Position(line - 1, 0);
+              // Try to open the document
+              let doc: vscode.TextDocument;
+              try {
+                doc = await vscode.workspace.openTextDocument(fileUri);
+              } catch (e) {
+                output.appendLine(`[Extension] ❌ Could not open document: ${e}`);
+                return;
+              }
 
-              // 4. Call the REAL analyzer
-              output.appendLine(`[Extension] Analyzing: ${filePath} at line ${line}`);
+              // Calculate position (Note: line number needs -1 because VS Code is 0-indexed)
+              // The previous toFuncCall used +1, so we subtract it back here
+              const zeroBasedLine = Math.max(0, line - 1);
+              const lineText = doc.lineAt(zeroBasedLine).text;
+
+              // Try to find the exact character position of the function name on this line
+              const characterIndex = lineText.indexOf(name);
+              const safeCharacterIndex = characterIndex >= 0 ? characterIndex : 0;
+              const pos = new vscode.Position(zeroBasedLine, safeCharacterIndex);
+
+              output.appendLine(
+                `[Extension] Analyzer Trigger: ${name} at ${filePath}:${line} (Char: ${safeCharacterIndex})`
+              );
+
+              // Call the analyzer
               const rawHierarchy = await getCallHierarchyAt(doc, pos);
 
               if (!rawHierarchy) {
-                output.appendLine("[Extension] Analyzer found no hierarchy for this node.");
+                output.appendLine("[Extension] ⚠️ Analyzer returned NO results.");
                 return;
               }
 
               // 5. Convert to our internal type
               const internalHierarchy = convertVsCodeHierarchy(rawHierarchy);
 
-              // 6. Transform to Cytoscape format
-              const newGraph = transformToCytoscapeGraph(internalHierarchy);
-              const newEncodedGraph = encodeGraphIds(newGraph);
+              // 6. Transform to Cytoscape format (generates RAW IDs)
+              const hierarchyGraph = transformToCytoscapeGraph(internalHierarchy);
+
+              // 7. [NEW] Filter out nodes that were already sent in the initial graph
+              //    (We keep the webview's de-duplication for nodes added by *other* expansions)
+              const initialNodeIds = new Set(graph.nodes.map((n) => n.data.id));
+
+              const newNodes = hierarchyGraph.nodes.filter(
+                (node) => !initialNodeIds.has(node.data.id)
+              );
+
+              // We only send edges that connect to these new nodes, or edges
+              // that were not in the initial graph (like recursive calls)
+              const initialEdgeIds = new Set(graph.edges.map((e) => e.data.id!));
+
+              const newEdges = hierarchyGraph.edges.filter(
+                (edge) => !initialEdgeIds.has(edge.data.id!)
+              );
+
+              // 8. Create the graph of *only* new elements
+              const newGraphData = {
+                nodes: newNodes,
+                edges: newEdges,
+              };
+
+              // 9. Encode all RAW IDs for safe transport
+              const newEncodedGraph = encodeGraphIds(newGraphData);
 
               output.appendLine(
                 `[Extension] Sending new elements: ${JSON.stringify(newEncodedGraph, null, 2)}`
               );
 
-              // 7. Send the new elements to the webview
+              // 8. Send the new, consistently-encoded elements to the webview
               panel.webview.postMessage({
                 type: "ADD_ELEMENTS",
                 data: newEncodedGraph,

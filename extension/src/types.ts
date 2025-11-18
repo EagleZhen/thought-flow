@@ -73,6 +73,13 @@ export interface CytoscapeNode {
  */
 export interface CytoscapeEdge {
   data: {
+    /**
+     * [FIX] ADDED
+     * Unique identifier (optional but recommended for de-duping).
+     * @example "edge_main_@_main.py:5_to_add_@_calculator/utils.py:1"
+     */
+    id?: string;
+
     /** Source node ID (caller) */
     source: string;
 
