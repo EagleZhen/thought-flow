@@ -693,18 +693,16 @@ export async function analyzeCallHierarchy(
     // Build the CallHierarchy-shaped output directly from the provider results
     const analyzedData: CallHierarchy = {
       target: { name: funcName, filePath: funcFile, line: funcLine },
-      incoming:
-        (result.callers || []).map((caller) => ({
-          name: caller.from.name,
-          filePath: toRel(caller.from.uri),
-          line: caller.from.range.start.line + 1,
-        })) || [],
-      outgoing:
-        (result.callees || []).map((callee) => ({
-          name: callee.to.name,
-          filePath: toRel(callee.to.uri),
-          line: callee.fromRanges[0].start.line + 1,
-        })) || [],
+      incoming: (result.callers || []).map((caller) => ({
+        name: caller.from.name,
+        filePath: toRel(caller.from.uri),
+        line: caller.from.range.start.line + 1,
+      })),
+      outgoing: (result.callees || []).map((callee) => ({
+        name: callee.to.name,
+        filePath: toRel(callee.to.uri),
+        line: callee.fromRanges[0].start.line + 1,
+      })),
     };
 
     // ============================================================
