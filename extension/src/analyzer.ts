@@ -58,7 +58,6 @@ export async function getCallHierarchyAt(document: vscode.TextDocument, position
       // shown in the JSON result and request incoming calls for it.
       let defItem = findNearestDefinitionCallHierarchyItem(document, position, item.name);
       if (defItem) {
-        resultFunctionItem = defItem;
         // Use the local customProvider when we created the CallHierarchyItem
         // ourselves. Some language providers will reject items they did not
         // create (resulting in "invalid item" errors), so call our
