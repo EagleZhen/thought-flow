@@ -1,5 +1,6 @@
 // Import the VS Code extension API to access editor/commands/workspace types and functions.
 import * as vscode from "vscode";
+import { CallHierarchy } from "./types";
 
 /**
  * Get call hierarchy for a symbol using the custom provider.
@@ -689,28 +690,20 @@ export async function analyzeCallHierarchy(
     // for items constructed from a definition line)
     const funcLine = result.function.selectionRange.start.line + 1; // +1 for 1-indexed display
 
-    // Create the data object with incoming and outgoing calls
-    const data = {
-      function: funcName, // Name of the analyzed function
-      current_file: funcFile, // File where function is defined
-      line: funcLine, // Line number (1-indexed)
-
-      // Incoming calls - who calls this function
-      // Self-references are already filtered in the provider
+    // Build the CallHierarchy-shaped output directly from the provider results
+    const analyzedData: CallHierarchy = {
+      target: { name: funcName, filePath: funcFile, line: funcLine },
       incoming:
-        result.callers?.map((caller) => ({
-          from: caller.from.name, // Name of the calling function
-          caller_line: caller.from.range.start.line + 1, // Line where caller is defined
-          file_path: toRel(caller.from.uri), // File containing the caller
-          line: caller.fromRanges[0].start.line + 1, // Line where the call happens
+        (result.callers || []).map((caller) => ({
+          name: caller.from.name,
+          filePath: toRel(caller.from.uri),
+          line: caller.from.range.start.line + 1,
         })) || [],
-
-      // Outgoing calls - what functions does this function call
       outgoing:
-        result.callees?.map((callee) => ({
-          to: callee.to.name, // Name of the called function
-          file_path: toRel(callee.to.uri), // File containing the callee
-          line: callee.fromRanges[0].start.line + 1, // Line where the call happens
+        (result.callees || []).map((callee) => ({
+          name: callee.to.name,
+          filePath: toRel(callee.to.uri),
+          line: callee.fromRanges[0].start.line + 1,
         })) || [],
     };
 
@@ -718,7 +711,7 @@ export async function analyzeCallHierarchy(
     // STEP 5: Log the generated data to output channel
     // ============================================================
     output.appendLine("📊 Generated data:");
-    output.appendLine(JSON.stringify(data, null, 2));
+    output.appendLine(JSON.stringify(analyzedData, null, 2));
 
     // ============================================================
     // STEP 6: Save to .vscode/callHierarchy.json
@@ -731,7 +724,10 @@ export async function analyzeCallHierarchy(
 
       // Write the JSON file
       const fileUri = vscode.Uri.joinPath(vscodeDir, "callHierarchy.json");
-      await vscode.workspace.fs.writeFile(fileUri, Buffer.from(JSON.stringify(data, null, 2)));
+      await vscode.workspace.fs.writeFile(
+        fileUri,
+        Buffer.from(JSON.stringify(analyzedData, null, 2))
+      );
 
       // ============================================================
       // STEP 7: Notify user and open the file
