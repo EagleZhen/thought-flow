@@ -24,8 +24,8 @@
     "keybindings": [
       {
         "command": "callHierarchyDemo.showCallHierarchy",
-        "key": "ctrl+shift+a",
-        "mac": "cmd+shift+a",
+        "key": "ctrl+shift+h",
+        "mac": "cmd+shift+h",
         "when": "editorTextFocus"
       }
     ],
