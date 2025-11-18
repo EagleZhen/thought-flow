@@ -47,7 +47,12 @@ export async function getOrCreateAccount(
     // Document already exists - read and return it
     if (error.code === GrpcStatus.ALREADY_EXISTS) {
       const accountSnap = await accountRef.get();
-      const data = accountSnap.data() as { tier: string; login: string };
+      const data = accountSnap.data() as { tier: string; login: string } | undefined;
+
+      if (!data) {
+        throw new Error("Account document exists but has no data");
+      }
+
       return { tier: data.tier, login: data.login };
     }
     // Re-throw other errors (network, permission, etc.)
