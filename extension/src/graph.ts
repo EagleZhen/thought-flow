@@ -91,7 +91,7 @@ export function showGraphView(
 
 /**
  * Transforms the backend CallHierarchy data into a Cytoscape.js compatible graph format.
- * * @param hierarchy The raw call hierarchy data from the analyzer.
+ * @param hierarchy The raw call hierarchy data from the analyzer.
  * @returns A CytoscapeGraph object (nodes and edges) ready for visualization.
  */
 export function transformToCytoscapeGraph(hierarchy: CallHierarchy): CytoscapeGraph {
