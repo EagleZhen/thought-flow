@@ -38,6 +38,11 @@ async function verifyGitHubToken(
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // Only accept POST requests
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+
   try {
     // Validate request body exists
     const body = req.body as { userId?: string; githubToken?: string } | undefined;
