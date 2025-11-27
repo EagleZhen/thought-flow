@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import { analyzeCallHierarchy, customProvider } from "@/analyzer";
 import { showGraphView } from "@/graph";
 import { getGitHubSession } from "@/license";
-import type { CytoscapeGraph } from "@/types";
+import type { CytoscapeGraph, CallHierarchy } from "@/types";
 
 export function activate(context: vscode.ExtensionContext) {
   const output = vscode.window.createOutputChannel("ThoughtFlow");
@@ -23,6 +23,7 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand("thoughtflow.debug.testAnalyzer", async () => {
       output.appendLine("Testing call hierarchy analyzer...");
+      let analyzedResults: CallHierarchy | undefined;
       context.subscriptions.push(
         vscode.languages.registerCallHierarchyProvider(
           { scheme: "file", language: "python" },
@@ -35,7 +36,10 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.window.showInformationMessage("Open a Python file and place cursor on a function.");
         return;
       }
-      analyzeCallHierarchy(context, output);
+
+      analyzedResults = await analyzeCallHierarchy(context, output);
+      output.appendLine("📊 Generated data:");
+      output.appendLine(JSON.stringify(analyzedResults, null, 2));
     })
   );
 
