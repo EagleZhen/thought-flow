@@ -644,7 +644,7 @@ export const customProvider: vscode.CallHierarchyProvider = {
 export async function analyzeCallHierarchy(
   context: vscode.ExtensionContext,
   output: vscode.OutputChannel
-) {
+): Promise<CallHierarchy | undefined> {
   output.show(true); // Show the panel immediately when extension activates
 
   try {
@@ -705,13 +705,7 @@ export async function analyzeCallHierarchy(
     };
 
     // ============================================================
-    // STEP 5: Log the generated data to output channel
-    // ============================================================
-    output.appendLine("📊 Generated data:");
-    output.appendLine(JSON.stringify(analyzedData, null, 2));
-
-    // ============================================================
-    // STEP 6: Save to .vscode/callHierarchy.json
+    // STEP 5: Save to .vscode/callHierarchy.json
     // ============================================================
     const folders = vscode.workspace.workspaceFolders;
     if (folders && folders.length > 0) {
@@ -727,7 +721,7 @@ export async function analyzeCallHierarchy(
       );
 
       // ============================================================
-      // STEP 7: Notify user and open the file
+      // STEP 6: Notify user and open the file
       // ============================================================
       output.appendLine(`✅ Saved to ${fileUri.fsPath}`);
       vscode.window.showInformationMessage(`Call hierarchy saved to ${fileUri.fsPath}`);
@@ -741,6 +735,7 @@ export async function analyzeCallHierarchy(
     }
 
     output.appendLine("--- Complete ---");
+    return analyzedData;
   } catch (error) {
     // ============================================================
     // Handle any errors that occur during execution
@@ -748,5 +743,6 @@ export async function analyzeCallHierarchy(
     const msg = `Error: ${error}`;
     output.appendLine(msg);
     vscode.window.showErrorMessage(msg);
+    throw error;
   }
 }
