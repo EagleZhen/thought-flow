@@ -23,7 +23,7 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand("thoughtflow.debug.testAnalyzer", async () => {
       output.appendLine("Testing call hierarchy analyzer...");
-      let analyzedResults: CallHierarchy | undefined;
+      let analyzedResults: CallHierarchy;
       context.subscriptions.push(
         vscode.languages.registerCallHierarchyProvider(
           { scheme: "file", language: "python" },
@@ -38,8 +38,12 @@ export function activate(context: vscode.ExtensionContext) {
       }
 
       analyzedResults = await analyzeCallHierarchy(context, output);
-      output.appendLine("📊 Generated data:");
-      output.appendLine(JSON.stringify(analyzedResults, null, 2));
+      if (!analyzedResults) {
+        return;
+      } else {
+        output.appendLine("📊 Generated data:");
+        output.appendLine(JSON.stringify(analyzedResults, null, 2));
+      }
     })
   );
 

@@ -644,7 +644,7 @@ export const customProvider: vscode.CallHierarchyProvider = {
 export async function analyzeCallHierarchy(
   context: vscode.ExtensionContext,
   output: vscode.OutputChannel
-): Promise<CallHierarchy | undefined> {
+): Promise<CallHierarchy> {
   output.show(true); // Show the panel immediately when extension activates
 
   try {
@@ -653,8 +653,7 @@ export async function analyzeCallHierarchy(
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
       // No file is currently open in the editor
-      vscode.window.showInformationMessage("Open a Python file and place cursor on a function.");
-      return;
+      throw new Error("No active text editor.");
     }
 
     // ============================================================
@@ -671,8 +670,7 @@ export async function analyzeCallHierarchy(
     const result = await getCallHierarchyAt(editor.document, editor.selection.active);
     if (!result) {
       // Cursor is not on a valid symbol (e.g., on whitespace or comment)
-      vscode.window.showInformationMessage("No symbol found at current position.");
-      return;
+      throw new Error("No symbol found at current position.");
     }
 
     // ============================================================
@@ -740,9 +738,10 @@ export async function analyzeCallHierarchy(
     // ============================================================
     // Handle any errors that occur during execution
     // ============================================================
-    const msg = `Error: ${error}`;
-    output.appendLine(msg);
-    vscode.window.showErrorMessage(msg);
+    const msg = error instanceof Error ? error.message : String(error);
+    const formatted = `Error: ${msg}`;
+    output.appendLine(formatted);
+    vscode.window.showErrorMessage(formatted);
     throw error;
   }
 }
