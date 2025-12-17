@@ -743,6 +743,6 @@ export async function analyzeCallHierarchy(
     const msg = `Error: ${error}`;
     output.appendLine(msg);
     vscode.window.showErrorMessage(msg);
-    return undefined;
+    throw error;
   }
 }
