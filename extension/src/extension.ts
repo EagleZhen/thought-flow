@@ -9,8 +9,12 @@ import {
   toFuncCall, // We'll use this for the debug command
 } from "@/graph";
 import { getGitHubSession } from "@/license";
+<<<<<<< HEAD
 // Import CallHierarchy type for the mock data
 import type { CallHierarchy, FunctionCall } from "@/types";
+=======
+import type { CytoscapeGraph, CallHierarchy } from "@/types";
+>>>>>>> c3bf08067e940c45fc83c89799149aaeb6ac50e7
 
 export function activate(context: vscode.ExtensionContext) {
   const output = vscode.window.createOutputChannel("ThoughtFlow");
@@ -73,9 +77,30 @@ export function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand("thoughtflow.debug.testAnalyzer", async () => {
+<<<<<<< HEAD
       output.appendLine("Testing call hierarchy analyzer (debug)...");
       // This command runs the analyzer and saves to JSON, good for debugging
       analyzeCallHierarchy(context, output);
+=======
+      output.appendLine("Testing call hierarchy analyzer...");
+      let analyzedResults: CallHierarchy | undefined;
+      context.subscriptions.push(
+        vscode.languages.registerCallHierarchyProvider(
+          { scheme: "file", language: "python" },
+          customProvider
+        )
+      );
+
+      const editor = vscode.window.activeTextEditor;
+      if (!editor) {
+        vscode.window.showInformationMessage("Open a Python file and place cursor on a function.");
+        return;
+      }
+
+      analyzedResults = await analyzeCallHierarchy(context, output);
+      output.appendLine("📊 Generated data:");
+      output.appendLine(JSON.stringify(analyzedResults, null, 2));
+>>>>>>> c3bf08067e940c45fc83c89799149aaeb6ac50e7
     })
   );
 
