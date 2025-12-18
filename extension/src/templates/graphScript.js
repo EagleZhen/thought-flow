@@ -1,208 +1,150 @@
 const vscode = acquireVsCodeApi();
-
-// Define cy at the top level so all functions can access it
 let cy;
 
 /**
- * Helper function to apply 'expandable' class to nodes that have hidden neighbors.
- * @param {cytoscape.Collection} nodes - The nodes to check.
+ * Visual configuration constants
  */
-function updateExpandableNodes(nodes) {
-  // We will implement this later when we have real multi-level data
-}
+const COLORS = {
+  TARGET: "#d9a40e", // Gold for focused node
+  FUNCTION: "#4376c2", // Blue for user functions
+  SYSTEM: "#9e9e9e", // Gray for built-in calls like 'print'
+  EDGE: "#7a96c0",
+  TEXT: "#333333",
+};
 
-/**
- * Initializes the Cytoscape graph with the provided data.
- * @param {object} graphData - The graph data object { nodes: [...], edges: [...] }
- * @param {string} targetNodeId - The ID of the node that the user clicked on.
- */
 function initializeCytoscape(graphData, targetNodeId) {
-  console.log("Initializing graph with data:", graphData);
-  console.log("Target Node ID received:", targetNodeId);
-
-  const elements =
-    graphData && Array.isArray(graphData.nodes) && Array.isArray(graphData.edges)
-      ? [...graphData.nodes, ...graphData.edges]
-      : graphData;
-
-  if (!elements || !Array.isArray(elements)) {
-    console.error("Invalid graph data format received:", graphData);
-    document.body.innerHTML =
-      '<p style="color: red; padding: 10px;">Error: Invalid graph data format.</p>';
-    return;
-  }
+  // Merge nodes and edges for Cytoscape
+  const elements = graphData && graphData.nodes ? [...graphData.nodes, ...graphData.edges] : [];
 
   const targetNodeSelector = `node[id = "${targetNodeId}"]`;
-  console.log("Using selector for target node:", targetNodeSelector);
 
   try {
-    // Assign to the top-level 'cy' variable
     cy = cytoscape({
       container: document.getElementById("cy"),
       elements: elements,
       style: [
         {
-          selector: "node", // Default node style
+          selector: "node",
           style: {
-            "background-color": "#4376c2",
+            "background-color": (node) => {
+              const label = node.data("label");
+              // Dim specific system functions to reduce visual noise
+              if (label === "print" || label === "<module>") return COLORS.SYSTEM;
+              return COLORS.FUNCTION;
+            },
             label: "data(label)",
-            color: "#000000",
-            shape: "rectangle",
-            "font-family": "Consolas",
-            "transition-property": "background-color, border-color, border-width, border-style",
-            "transition-duration": "0.2s",
+            color: COLORS.TEXT,
+            shape: "round-rectangle", // Softer corners
+            width: "label",
+            height: "label",
+            padding: "10px",
+            "font-family": "Segoe UI, Tahoma, Geneva, Verdana, sans-serif",
+            "font-size": "12px",
+            "text-valign": "center",
+            "text-halign": "center",
+            "border-width": 0,
+            "transition-property": "background-color, transform",
+            "transition-duration": "0.3s",
           },
         },
         {
-          selector: targetNodeSelector, // Style for our Target Node
+          selector: targetNodeSelector,
           style: {
-            "background-color": "#d9a40e",
-            "border-color": "#FFF",
+            "background-color": COLORS.TARGET,
             "border-width": 2,
-            color: "#000000",
-            "z-index": 10,
+            "border-color": "#ffffff",
+            "font-weight": "bold",
+            "z-index": 100,
           },
         },
         {
-          // Style for nodes that can be expanded
-          selector: "node.expandable",
+          selector: "edge",
           style: {
-            "border-color": "#e63946",
-            "border-width": 3,
-            "border-style": "dashed",
-          },
-        },
-        {
-          selector: "edge", // Default edge style
-          style: {
-            width: 3,
-            "line-color": "#7a96c0",
-            "target-arrow-color": "#7a96c0",
-            "target-arrow-shape": "triangle",
+            width: 2,
+            "line-color": COLORS.EDGE,
+            "target-arrow-color": COLORS.EDGE,
+            "target-arrow-shape": "vee", // Modern arrow shape
             "curve-style": "bezier",
-            opacity: 0.5,
+            "control-point-step-size": 40,
+            opacity: 0.4,
+            "transition-property": "opacity",
+            "transition-duration": "0.3s",
+          },
+        },
+        {
+          // Interaction: Highlight on hover
+          selector: "node:selected",
+          style: {
+            "border-width": 3,
+            "border-color": "#000",
           },
         },
       ],
       layout: {
         name: "cose",
-        idealEdgeLength: 100,
-        nodeOverlap: 20,
+        animate: true,
+        animationDuration: 800,
         refresh: 20,
         fit: true,
-        padding: 30,
-        randomize: false,
-        componentSpacing: 100,
-        nodeRepulsion: 400000,
-        edgeElasticity: 100,
-        nestingFactor: 5,
-        gravity: 80,
+        padding: 50,
+        // Physics adjustments for a more "artistic" cluster
+        nodeRepulsion: 10000, // Balanced spacing
+        idealEdgeLength: 80, // Keep connections tight
+        componentSpacing: 60,
+        gravity: 1.5, // Pull nodes toward the center
         numIter: 1000,
-        initialTemp: 200,
-        coolingFactor: 0.95,
-        minTemp: 1.0,
       },
     });
 
-    // --- Interactivity ---
-
-    // When a node is tapped...
+    // Node Click Event
     cy.on("tap", "node", function (evt) {
       const node = evt.target;
-      const nodeId = node.id(); // Get the ID (it's already encoded)
-      console.log("Tapped node id: " + nodeId + ", label: " + node.data("label"));
+      const nodeId = node.id();
 
-      // Send a message BACK to the extension, requesting to expand this node.
+      // Visual feedback: briefly highlight the tapped node
+      node.flashClass("highlighted", 200);
+
       vscode.postMessage({
         type: "NODE_TAPPED",
-        payload: {
-          id: decodeURIComponent(nodeId), // Send the clean, un-encoded ID
-        },
+        payload: { id: nodeId },
       });
     });
-
-    cy.on("tap", "edge", function (evt) {
-      const edge = evt.target;
-      console.log("Tapped edge from " + edge.source().id() + " to " + edge.target().id());
-    });
   } catch (error) {
-    console.error("Error initializing Cytoscape:", error);
-    document.body.innerHTML =
-      '<p style="color: red; padding: 10px;">Error initializing graph visualization.</p>';
+    console.error("Layout Initialization Error:", error);
   }
-} // end of initializeCytoscape function
+}
 
-// Listen for graph data from extension
+/**
+ * Message listener for extension communication
+ */
 window.addEventListener("message", (event) => {
   const message = event.data;
 
   if (message.type === "INIT_GRAPH") {
-    try {
-      // Pass both the graph data AND the new targetId
-      initializeCytoscape(message.data, message.targetId);
-    } catch (error) {
-      console.error("Error initializing graph:", error);
-      document.body.innerHTML =
-        '<p style="color: red; padding: 10px;">Error loading graph data.</p>';
-    }
+    initializeCytoscape(message.data, message.targetId);
   } else if (message.type === "ADD_ELEMENTS") {
-    // [FIX] This is the new logic to handle expanding a node
     if (cy && message.data) {
-      console.log("Received new elements:", message.data);
+      // Filter out existing elements to prevent duplicates
+      const newNodes = (message.data.nodes || []).filter((n) =>
+        cy.getElementById(n.data.id).empty()
+      );
+      const newEdges = (message.data.edges || []).filter((e) =>
+        cy.getElementById(e.data.id).empty()
+      );
 
-      let nodesToAdd = [];
-      if (Array.isArray(message.data.nodes)) {
-        for (const node of message.data.nodes) {
-          // Check if node already exists
-          if (cy.getElementById(node.data.id).empty()) {
-            nodesToAdd.push(node);
-          }
-        }
-      }
+      if (newNodes.length > 0) cy.add(newNodes);
+      if (newEdges.length > 0) cy.add(newEdges);
 
-      let edgesToAdd = [];
-      if (Array.isArray(message.data.edges)) {
-        for (const edge of message.data.edges) {
-          // Check if edge already exists
-          if (cy.getElementById(edge.data.id).empty()) {
-            edgesToAdd.push(edge);
-          }
-        }
-      }
-
-      // Only add if there are new nodes or edges
-      if (nodesToAdd.length > 0) {
-        console.log(
-          "Adding new nodes:",
-          nodesToAdd.map((n) => n.data.id)
-        );
-        cy.add(nodesToAdd);
-      }
-      if (edgesToAdd.length > 0) {
-        console.log(
-          "Adding new edges:",
-          edgesToAdd.map((e) => e.data.id)
-        );
-        cy.add(edgesToAdd);
-      }
-
-      // Only re-run layout if something was actually added
-      if (nodesToAdd.length > 0 || edgesToAdd.length > 0) {
-        console.log("Running layout for new elements...");
+      // Re-run layout with a smooth transition
+      if (newNodes.length > 0 || newEdges.length > 0) {
         cy.layout({
           name: "cose",
-          fit: false,
-          padding: 30,
-          animate: true, // Animate the transition
-          animationDuration: 500, // 0.5 second animation
-          idealEdgeLength: 100,
-          nodeOverlap: 20,
-          componentSpacing: 100,
-          nodeRepulsion: 400000,
-          edgeElasticity: 100,
+          animate: true,
+          animationDuration: 600,
+          nodeRepulsion: 10000,
+          gravity: 1.2,
+          fit: false, // Don't zoom out completely on every expansion
         }).run();
-      } else {
-        console.log("No new elements to add. Skipping layout.");
       }
     }
   }
