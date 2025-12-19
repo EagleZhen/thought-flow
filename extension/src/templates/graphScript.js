@@ -128,8 +128,9 @@ window.addEventListener("message", (event) => {
       const newNodes = (message.data.nodes || []).filter((n) =>
         cy.getElementById(n.data.id).empty()
       );
-      const newEdges = (message.data.edges || []).filter((e) =>
-        cy.getElementById(e.data.id).empty()
+      // [FIX] Added checks for edge.data and edge.data.id to prevent null reference errors
+      const newEdges = (message.data.edges || []).filter(
+        (e) => e.data && e.data.id && cy.getElementById(e.data.id).empty()
       );
 
       if (newNodes.length > 0) cy.add(newNodes);

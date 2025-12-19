@@ -1,127 +1,161 @@
-import * as vscode from "vscode";
-import { analyzeCallHierarchy, customProvider, getCallHierarchyAt } from "@/analyzer";
-// Import transformToCytoscapeGraph and the CallHierarchy type
-import { showGraphView, transformToCytoscapeGraph } from "@/graph";
-import { getGitHubSession } from "@/license";
-import type { CytoscapeGraph, CallHierarchy } from "@/types"; // Import CallHierarchy
+import * as fs from 'fs';
+import * as path from 'path';
 
-export function activate(context: vscode.ExtensionContext) {
-  const output = vscode.window.createOutputChannel("ThoughtFlow");
-  context.subscriptions.push(output);
+//const graphdata = require('./callHierarchy.json')
+// import * as graphdata from './callHierarchy.json';
+import graphdata from '../callHierarchy.json' with { type: "json" }; //
+// import graphdata from './callHierarchy.json';
 
-  context.subscriptions.push(
-    vscode.commands.registerCommand("thoughtflow.visualizeCallGraph", async () => {
-      const editor = vscode.window.activeTextEditor;
-      if (!editor) {
-        vscode.window.showInformationMessage("Open a Python file and place cursor on a function.");
-        return;
-      }
+// --- Data processing logic moved inside 'activate' function ---
 
-      // TODO: Full flow (analyze + transform + visualize)
-      // 1. const rawHierarchy = await getCallHierarchyAt(editor.document, editor.selection.active);
-      // 2. if (rawHierarchy) {
-      // 3.   // Note: The getUniqueId logic is defined in graph.ts, so we replicate it here.
-      // 4.   const toRel = (uri: vscode.Uri) => vscode.workspace.asRelativePath(uri, false);
-      // 5.   const toFuncCall = (item: vscode.CallHierarchyItem): FunctionCall => ({
-      // 6.     name: item.name,
-      // 7.     filePath: toRel(item.uri),
-      // 8.     line: item.range.start.line + 1, // Convert 0-indexed to 1-indexed
-      // 9.   });
-      // 10.
-      // 11.  const hierarchy: CallHierarchy = {
-      // 12.    target: toFuncCall(rawHierarchy.function),
-      // 13.    incoming: rawHierarchy.callers.map((c: any) => toFuncCall(c.from)),
-      // 14.    outgoing: rawHierarchy.callees.map((c: any) => toFuncCall(c.to)),
-      // 15.  };
-      // 16.
-      // 17.  const targetId = `${hierarchy.target.name} @ ${hierarchy.target.filePath}:${hierarchy.target.line}`;
-      // 18.  const graphData = transformToCytoscapeGraph(hierarchy);
-      // 19.  showGraphView(context, graphData, targetId, output, getCallHierarchyAt);
-      // 20. }
-    })
-  );
+// below is for testing validity of ${ elements }, simply replace with latest ui stuffs
 
-  context.subscriptions.push(
-    vscode.commands.registerCommand("thoughtflow.debug.testAnalyzer", async () => {
-      output.appendLine("Testing call hierarchy analyzer...");
-      context.subscriptions.push(
-        vscode.languages.registerCallHierarchyProvider(
-          { scheme: "file", language: "python" },
-          customProvider
-        )
-      );
+import * as vscode from 'vscode'; //
+const util = require('node:util'); //
 
-      const editor = vscode.window.activeTextEditor;
-      if (!editor) {
-        vscode.window.showInformationMessage("Open a Python file and place cursor on a function.");
-        return;
-      }
-      // Call the analyzer function
-      analyzeCallHierarchy(context, output);
-    })
-  );
+export function activate(context: vscode.ExtensionContext) { //
 
-  context.subscriptions.push(
-    vscode.commands.registerCommand("thoughtflow.debug.testGraph", async () => {
-      output.appendLine("Testing graph transformation and visualization...");
+    // Create a dedicated output channel for logging
+    const outputChannel = vscode.window.createOutputChannel('Code Graph');
+    outputChannel.appendLine("==> Activating graph extension in experiments/graphdata...");
 
-      // Step 1: Create Mock Analyzer Data (CallHierarchy)
-      // This data now uses the CORRECT line numbers from test-workspace
-      const mockHierarchy: CallHierarchy = {
-        target: {
-          name: "main",
-          filePath: "main.py",
-          line: 5, // Correct line for 'def main'
-        },
-        incoming: [
-          // This node is simulated, its line number doesn't matter for this test
-          { name: "module_call", filePath: "main.py", line: 10 },
-        ],
-        outgoing: [
-          // Correct path and line for 'def add'
-          { name: "add", filePath: "calculator/utils.py", line: 1 },
-          // Correct path and line for 'def factorial'
-          { name: "factorial", filePath: "calculator/core.py", line: 5 },
-        ],
-      };
+    let disposable = vscode.commands.registerCommand('graph.run', () => { //
+        // Log command execution and show the channel to the user
+        outputChannel.appendLine("==> 'graph.run' command executed!");
+        outputChannel.show(); // Automatically show the output panel
 
-      // Step 2: Calculate the targetNodeId from the mock data
-      const targetId = `${mockHierarchy.target.name} @ ${mockHierarchy.target.filePath}:${mockHierarchy.target.line}`;
+        const panel = vscode.window.createWebviewPanel( //
+            'codeGraphPanel', // Internal ID for the webview panel
+            'Code Graph', // Title of the panel displayed to the user
+            vscode.ViewColumn.One, // Show the new webview panel in the first editor column
+            {
+                // Enable javascript in the webview
+                enableScripts: true, //
+                localResourceRoots: [ //
+                  vscode.Uri.joinPath(context.extensionUri, 'webview')
+              ]
+            }
+        );
 
-      // Step 3: Call your Transformation function
-      const transformedGraph: CytoscapeGraph = transformToCytoscapeGraph(mockHierarchy);
+        // var data = ""; // // Not strictly needed anymore // [REMOVED]
+        try{ //
+            // --- Modification Start ---
+            // Data processing logic moved inside the try...catch block
+            const baseid = graphdata.uri.replace(/(\/|\.)/gm, "_") + '_' +graphdata.function; //
+            // console.log(`cid = ${ baseid }`);
+            const baselabel = baseid; //
+            // console.log(`clabel = ${ baselabel }`);
 
-      output.appendLine(`[Debug] Target ID: ${targetId}`);
-      output.appendLine(`[Debug] Transformed Graph: ${JSON.stringify(transformedGraph, null, 2)}`);
+            const nodesArray: any[] = []; // Use an array to store node objects
+            const edgesArray: any[] = []; // Use an array to store edge objects
 
-      // Step 4: Call showGraphView, passing the analyzer function as an argument
-      showGraphView(context, transformedGraph, targetId, output, getCallHierarchyAt);
-    })
-  );
+            // Add the base node
+            nodesArray.push({
+                data: {
+                    id: baseid,
+                    label: baselabel,
+                }
+            });
 
-  context.subscriptions.push(
-    vscode.commands.registerCommand("thoughtflow.debug.testGitHubAuth", async () => {
-      output.appendLine("Testing GitHub Authentication...");
+            const addedNodeIds = new Set<string>([baseid]); // Use a Set to track added node IDs to avoid duplicates
 
-      const session = await getGitHubSession();
+            var id = ''; // Define id here
+            var label = ''; // Define label here
 
-      if (session) {
-        output.appendLine(`✅ GitHub User ID: ${session.account.id}`); // GitHub numeric ID
-        output.appendLine(`✅ GitHub User Name: ${session.account.label}`); // GitHub username
-      } else {
-        output.appendLine("❌ Failed to get GitHub session");
-      }
+            // Process incoming edges and nodes
+            for (const item of graphdata.incoming){ //
+                id = (item as any).uri.replace(/(\/|\.)/gm, "_") + '_line' + (item as any).line; //
+                // console.log(id);
+                label = (item as any).uri + ' line' + (item as any).line; //
 
-      output.show();
-    })
-  );
+                // If the node hasn't been added, add it to the array
+                if(!addedNodeIds.has(id)){ //
+                    nodesArray.push({
+                        data: {
+                            id: id,
+                            label: label,
+                        }
+                    });
+                    addedNodeIds.add(id); //
+                }
+                // Add the edge
+                edgesArray.push({ //
+                    data: {
+                        source: id, // source for incoming is id
+                        target: baseid
+                    }
+                });
+            }
 
-  // The testDatabase command remains commented out
-  // context.subscriptions.push(
-  //   vscode.commands.registerCommand("thoughtflow.debug.testDatabase", async () => {
-  //     ...
-  //   })
-  // );
+            // Process outgoing edges and nodes
+            for (const item of graphdata.outgoing){ //
+                // id = (item as any).uri.replace(/(\/|\.)/gm, "_") + '_line' + (item as any).line + '_' + (item as any).uri.to(/(\/|\.)/gm, "_");
+                id = (item as any).uri.replace(/(\/|\.)/gm, "_") + '_' + (item as any).to; //
+                // console.log(id);
+                label = (item as any).uri + ' line' + (item as any).line; //
+
+                // If the node hasn't been added, add it to the array
+                if(!addedNodeIds.has(id)){ //
+                    nodesArray.push({
+                        data: {
+                            id: id,
+                            label: label,
+                        }
+                    });
+                    addedNodeIds.add(id); //
+                }
+                // Add the edge
+                edgesArray.push({ //
+                    data: {
+                        source: baseid,
+                        target: id // target for outgoing is id
+                    }
+                });
+            }
+
+            // Use JSON.stringify to convert the object containing arrays into a valid JSON string
+            const elementsObject = {
+                nodes: nodesArray,
+                edges: edgesArray
+            };
+            const elements = JSON.stringify(elementsObject); // <-- Generate standard JSON string directly
+
+            outputChannel.appendLine("Generated elements JSON: " + elements); // Log to output channel
+            // --- Modification End ---
+
+            // Set the HTML content for the webview panel
+            const graphDataString = elements; // // Use the generated JSON string
+
+            const webviewFolderPathOnDisk = vscode.Uri.joinPath( //
+              context.extensionUri, 'webview'
+          );
+
+            const htmlPathOnDisk = vscode.Uri.joinPath(webviewFolderPathOnDisk, 'graphView.html'); //
+
+            let htmlContent = fs.readFileSync(htmlPathOnDisk.fsPath, 'utf8'); //
+
+            const cssPathOnDisk = vscode.Uri.joinPath(webviewFolderPathOnDisk, 'graphStyle.css'); //
+            const scriptPathOnDisk = vscode.Uri.joinPath(webviewFolderPathOnDisk, 'graphScript.js'); //
+
+            const cssUri = panel.webview.asWebviewUri(cssPathOnDisk); //
+            const scriptUri = panel.webview.asWebviewUri(scriptPathOnDisk); //
+
+            htmlContent = htmlContent.replace('${graphDataJson}', graphDataString); //
+            htmlContent = htmlContent.replace('${cssUri}', cssUri.toString()); //
+            htmlContent = htmlContent.replace('${scriptUri}', scriptUri.toString()); //
+
+            panel.webview.html = htmlContent; //
+        }
+        catch (error){ //
+            // Log errors to the output channel and notify the user
+            outputChannel.appendLine(`[ERROR] Failed to run Code Graph: ${error}`);
+            vscode.window.showErrorMessage('Failed to run Code Graph. Check the "Code Graph" output panel for details.');
+        }
+
+    });
+
+    context.subscriptions.push(disposable); //
 }
 
-export function deactivate() {}
+// This method is called when your extension is deactivated
+export function deactivate() {} //

@@ -122,10 +122,11 @@ export async function getCallHierarchyAt(document: vscode.TextDocument, position
       }
     }
 
+    // Ensure we return arrays, not null/undefined, to satisfy Strict types in other files
     return {
       function: resultFunctionItem,
-      callers: incomingCalls,
-      callees: outgoingCalls,
+      callers: incomingCalls ?? [],
+      callees: outgoingCalls ?? [],
     };
   } catch (error) {
     console.error("Error in getCallHierarchy:", error);
@@ -143,17 +144,14 @@ export function escapeRegExp(str: string): string {
 }
 
 /**
-<<<<<<< HEAD
- * Custom Call Hierarchy Provider for Python files.
-=======
  * Determine whether the cursor is positioned on a Python function definition.
  *
  * Strategy:
  * 1. Check the word at the cursor and test the current line against a
- *    `def <name>(` pattern.
+ * `def <name>(` pattern.
  * 2. If that fails, fall back to `vscode.prepareCallHierarchy` (so other
- *    language providers can participate) and verify the returned item's
- *    selectionRange line contains a `def` for the same name.
+ * language providers can participate) and verify the returned item's
+ * selectionRange line contains a `def` for the same name.
  */
 export async function isCursorOnDefinition(
   document: vscode.TextDocument,
@@ -260,7 +258,6 @@ export function findNearestDefinitionCallHierarchyItem(
 
 /**
  * Custom Call Hierarchy Provider for Python files. (The real functionality)
->>>>>>> c3bf08067e940c45fc83c89799149aaeb6ac50e7
  */
 export const customProvider: vscode.CallHierarchyProvider = {
   /**
@@ -327,30 +324,6 @@ export const customProvider: vscode.CallHierarchyProvider = {
       const text = doc.getText();
       const lines = text.split(/\r?\n/);
 
-<<<<<<< HEAD
-      // Build a map of all function definitions in this file
-      // Structure: { name: "function_name", start: line_number, end: line_number }
-      const defs: { name: string; start: number; end: number }[] = [];
-
-      for (let i = 0; i < lines.length; i++) {
-        const match = /^\s*def\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(/.exec(lines[i]);
-        if (match) {
-          const funcName = match[1];
-          const indent = lines[i].search(/\S/);
-          let end = i + 1;
-
-          // Walk forward to find where the function ends based on indentation
-          while (end < lines.length) {
-            const line = lines[end];
-            if (line.trim() && line.search(/\S/) <= indent) break;
-            end++;
-          }
-          defs.push({ name: funcName, start: i, end: end - 1 });
-        }
-      }
-
-      // Find all calls to the target function using regex
-=======
       // ============================================================
       // STEP 1: Find all calls to the target function using regex
       // (We no longer pre-build a defs map; instead we use
@@ -358,7 +331,6 @@ export const customProvider: vscode.CallHierarchyProvider = {
       // ============================================================
       // Pattern: word boundary + target name + optional whitespace + "("
       // Example: "foo(" or "foo (" or "result = foo("
->>>>>>> c3bf08067e940c45fc83c89799149aaeb6ac50e7
       const callRegex = new RegExp("\\b" + escapeRegExp(targetName) + "\\s*\\(", "g");
       const defLinePattern = new RegExp("^\\s*def\\s+" + escapeRegExp(targetName) + "\\s*\\(");
 
@@ -368,63 +340,16 @@ export const customProvider: vscode.CallHierarchyProvider = {
         const pos = doc.positionAt(match.index);
         const line = pos.line;
 
-<<<<<<< HEAD
-        // Filter 1: Skip definition lines
-=======
         // FILTER: Skip function definition lines (don't treat def as a call)
->>>>>>> c3bf08067e940c45fc83c89799149aaeb6ac50e7
         if (defLinePattern.test(lines[line] ?? "")) {
           continue;
         }
 
-<<<<<<< HEAD
-        // Determine which function contains this call site
-        let caller = "<module>"; // Default: module-level
-        let callerDefLine = -1;
-
-        for (const def of defs) {
-          if (line > def.start && line <= def.end) {
-            caller = def.name;
-            callerDefLine = def.start;
-          }
-        }
-
-        // Filter 2: Skip self-recursive calls
-        if (caller === targetName) {
-          continue;
-        }
-
-        // Create ranges
-=======
         // Range for the call occurrence
->>>>>>> c3bf08067e940c45fc83c89799149aaeb6ac50e7
         const range =
           doc.getWordRangeAtPosition(pos) ??
           new vscode.Range(pos, pos.translate(0, targetName.length));
 
-<<<<<<< HEAD
-        const callerRange =
-          callerDefLine >= 0
-            ? new vscode.Range(
-                new vscode.Position(callerDefLine, 0),
-                new vscode.Position(callerDefLine, 0)
-              )
-            : range;
-
-        results.push(
-          new vscode.CallHierarchyIncomingCall(
-            new vscode.CallHierarchyItem(
-              vscode.SymbolKind.Function,
-              caller,
-              "",
-              fileUri,
-              callerRange,
-              callerRange
-            ),
-            [range]
-          )
-        );
-=======
         // Ask the indentation-aware helper for the nearest enclosing def
         const callerItem = findNearestDefinitionCallHierarchyItem(doc, pos, targetName);
 
@@ -465,7 +390,6 @@ export const customProvider: vscode.CallHierarchyProvider = {
             )
           );
         }
->>>>>>> c3bf08067e940c45fc83c89799149aaeb6ac50e7
       }
     }
 
@@ -616,15 +540,9 @@ export const customProvider: vscode.CallHierarchyProvider = {
 export async function analyzeCallHierarchy(
   context: vscode.ExtensionContext,
   output: vscode.OutputChannel
-<<<<<<< HEAD
-) {
-  // This function is mostly for debugging via command, similar logic as extension.ts
-  output.show(true);
-=======
 ): Promise<CallHierarchy | undefined> {
   output.show(true); // Show the panel immediately when extension activates
 
->>>>>>> c3bf08067e940c45fc83c89799149aaeb6ac50e7
   try {
     output.appendLine("🚀 Command started (Debug Analyzer)");
     const editor = vscode.window.activeTextEditor;
@@ -641,12 +559,6 @@ export async function analyzeCallHierarchy(
       return;
     }
 
-<<<<<<< HEAD
-    output.appendLine("✅ Analysis successful. Result:");
-    output.appendLine(JSON.stringify(result, null, 2));
-  } catch (error) {
-    output.appendLine(`❌ Error: ${error}`);
-=======
     // ============================================================
     // STEP 4: Build JSON data structure with relative paths
     // ============================================================
@@ -664,12 +576,12 @@ export async function analyzeCallHierarchy(
     // Build the CallHierarchy-shaped output directly from the provider results
     const analyzedData: CallHierarchy = {
       target: { name: funcName, filePath: funcFile, line: funcLine },
-      incoming: (result.callers || []).map((caller) => ({
+      incoming: (result.callers ?? []).map((caller) => ({
         name: caller.from.name,
         filePath: toRel(caller.from.uri),
         line: caller.from.range.start.line + 1,
       })),
-      outgoing: (result.callees || []).map((callee) => ({
+      outgoing: (result.callees ?? []).map((callee) => ({
         name: callee.to.name,
         filePath: toRel(callee.to.uri),
         line: callee.fromRanges[0].start.line + 1,
@@ -716,6 +628,5 @@ export async function analyzeCallHierarchy(
     output.appendLine(msg);
     vscode.window.showErrorMessage(msg);
     throw error;
->>>>>>> c3bf08067e940c45fc83c89799149aaeb6ac50e7
   }
 }
