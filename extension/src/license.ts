@@ -76,11 +76,56 @@ export async function getOrCreateAccount(
     const account: UserAccount = {
       tier: data.tier as "free" | "paid",
       login: data.login,
+      licenseKey: data.licenseKey,
+      licenseExpiresAt: data.licenseExpiresAt ? new Date(data.licenseExpiresAt) : undefined,
     };
     console.log(`✅ User account: ${account.login} (${account.tier})`);
     return account;
   } catch (error) {
     console.error("❌ Error calling backend:", error);
     return null;
+  }
+}
+
+/**
+ * Apply a license key to the user's account
+ * @param session - GitHub authentication session
+ * @param licenseKey - License key to apply
+ * @returns Success status and updated account info, or error message
+ */
+export async function applyLicense(
+  session: vscode.AuthenticationSession,
+  licenseKey: string
+): Promise<{ success: boolean; error?: string; tier?: string; expiresAt?: Date }> {
+  try {
+    const response = await fetch(BACKEND_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        action: "applyLicense",
+        userId: session.account.id,
+        githubToken: session.accessToken,
+        licenseKey: licenseKey.trim().toUpperCase(), // Normalize key format
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = (await response.json()) as any;
+      console.error(`❌ Backend error (${response.status}):`, errorData.error);
+      return { success: false, error: errorData.error || "Failed to apply license" };
+    }
+
+    const result = (await response.json()) as any;
+    console.log(`✅ License applied: ${result.tier}`);
+    return {
+      success: true,
+      tier: result.tier,
+      expiresAt: result.expiresAt ? new Date(result.expiresAt) : undefined,
+    };
+  } catch (error) {
+    console.error("❌ Error applying license:", error);
+    return { success: false, error: "Network error" };
   }
 }
