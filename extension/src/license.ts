@@ -58,7 +58,23 @@ export async function getOrCreateAccount(
       return null;
     }
 
-    const account = (await response.json()) as UserAccount;
+    // Parse and validate response
+    const data = (await response.json()) as any;
+    if (!data || typeof data.tier !== "string" || typeof data.login !== "string") {
+      console.error("❌ Invalid response from backend - missing or invalid fields:", data);
+      return null;
+    }
+
+    // Validate tier value
+    if (data.tier !== "free" && data.tier !== "paid") {
+      console.error(`❌ Invalid tier value from backend: ${data.tier}`);
+      return null;
+    }
+
+    const account: UserAccount = {
+      tier: data.tier as "free" | "paid",
+      login: data.login,
+    };
     console.log(`✅ User account: ${account.login} (${account.tier})`);
     return account;
   } catch (error) {
