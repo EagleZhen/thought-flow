@@ -57,6 +57,10 @@
       {
         "command": "thoughtflow.debug.testDatabase",
         "title": "ThoughtFlow Debug: Test Database"
+      },
+      {
+        "command": "thoughtflow.enterLicenseKey",
+        "title": "ThoughtFlow: Enter License Key"
       }
     ],
     "keybindings": [

@@ -3,7 +3,7 @@ import * as vscode from "vscode";
 import { getCallHierarchyAt, customProvider, analyzeCallHierarchy } from "@/analyzer";
 // Import graph functions, including the new converter helpers
 import { showGraphView, transformToCytoscapeGraph, convertVsCodeHierarchy } from "@/graph";
-import { getGitHubSession, getOrCreateAccount } from "@/license";
+import { getGitHubSession, getOrCreateAccount, applyLicense } from "@/license";
 import type { CytoscapeGraph, CallHierarchy } from "@/types";
 
 export function activate(context: vscode.ExtensionContext) {
@@ -159,7 +159,60 @@ export function activate(context: vscode.ExtensionContext) {
 
       output.appendLine(`✅ Login: ${account.login}`);
       output.appendLine(`✅ Tier: ${account.tier}`);
+      if (account.licenseKey) {
+        output.appendLine(`✅ License: ${account.licenseKey}`);
+        if (account.licenseExpiresAt) {
+          output.appendLine(`✅ Expires: ${account.licenseExpiresAt.toDateString()}`);
+        }
+      }
       output.show();
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("thoughtflow.enterLicenseKey", async () => {
+      const session = await getGitHubSession();
+      if (!session) {
+        vscode.window.showErrorMessage("Please sign in with GitHub first");
+        return;
+      }
+
+      const licenseKey = await vscode.window.showInputBox({
+        prompt: "Enter your license key",
+        placeHolder: "AAAA-BBBB-CCCC-DDDD",
+        validateInput: (value) => {
+          const normalized = value.trim().toUpperCase();
+          if (!/^[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(normalized)) {
+            return "Invalid format. Expected: AAAA-BBBB-CCCC-DDDD";
+          }
+          return null;
+        },
+      });
+
+      if (!licenseKey) {
+        return;
+      }
+
+      await vscode.window.withProgress(
+        {
+          location: vscode.ProgressLocation.Notification,
+          title: "Applying license key...",
+          cancellable: false,
+        },
+        async () => {
+          const result = await applyLicense(session, licenseKey);
+          if (result.success) {
+            const expiresMsg = result.expiresAt
+              ? ` (expires ${result.expiresAt.toDateString()})`
+              : "";
+            vscode.window.showInformationMessage(
+              `✅ License applied! Tier: ${result.tier}${expiresMsg}`
+            );
+          } else {
+            vscode.window.showErrorMessage(`❌ ${result.error}`);
+          }
+        }
+      );
     })
   );
 }
