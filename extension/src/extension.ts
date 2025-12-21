@@ -3,7 +3,7 @@ import * as vscode from "vscode";
 import { getCallHierarchyAt, customProvider, analyzeCallHierarchy } from "@/analyzer";
 // Import graph functions, including the new converter helpers
 import { showGraphView, transformToCytoscapeGraph, convertVsCodeHierarchy } from "@/graph";
-import { getGitHubSession } from "@/license";
+import { getGitHubSession, getOrCreateAccount } from "@/license";
 import type { CytoscapeGraph, CallHierarchy } from "@/types";
 
 export function activate(context: vscode.ExtensionContext) {
