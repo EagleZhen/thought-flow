@@ -1,108 +1,152 @@
-/**
- * Initializes the Cytoscape graph with the provided data.
- * @param {object} graphData - The graph data object, expected format like { nodes: [...], edges: [...] }
- * or directly the elements array Cytoscape expects.
- */
-function initializeCytoscape(graphData) {
-  // Check if graphData has nodes and edges properties, otherwise assume it's the elements array directly
-  const elements =
-    graphData && Array.isArray(graphData.nodes) && Array.isArray(graphData.edges)
-      ? [...graphData.nodes, ...graphData.edges]
-      : graphData; // Fallback assuming graphData is already the elements array
+const vscode = acquireVsCodeApi();
+let cy;
 
-  if (!elements || !Array.isArray(elements)) {
-    console.error("Invalid graph data format received:", graphData);
-    document.body.innerHTML =
-      '<p style="color: red; padding: 10px;">Error: Invalid graph data format.</p>';
-    return;
-  }
+/**
+ * Visual configuration constants
+ */
+const COLORS = {
+  TARGET: "#d9a40e", // Gold for focused node
+  FUNCTION: "#4376c2", // Blue for user functions
+  SYSTEM: "#9e9e9e", // Gray for built-in calls like 'print'
+  EDGE: "#7a96c0",
+  TEXT: "#333333",
+};
+
+function initializeCytoscape(graphData, targetNodeId) {
+  // Merge nodes and edges for Cytoscape
+  const elements = graphData && graphData.nodes ? [...graphData.nodes, ...graphData.edges] : [];
+
+  const targetNodeSelector = `node[id = "${targetNodeId}"]`;
 
   try {
-    const cy = cytoscape({
-      container: document.getElementById("cy"), // The div where the graph will be rendered
-
-      elements: elements, // The nodes and edges data
-
+    cy = cytoscape({
+      container: document.getElementById("cy"),
+      elements: elements,
       style: [
-        // Define the visual style of nodes and edges
         {
-          selector: "node", // Style for all nodes
+          selector: "node",
           style: {
-            "background-color": "#4376c2",
-            label: "data(label)", // Use 'label' if available, otherwise 'id'
-            color: "#7a96c0",
-            "font-family": "Consolas",
+            "background-color": (node) => {
+              const label = node.data("label");
+              // Dim specific system functions to reduce visual noise
+              if (label === "print" || label === "<module>") return COLORS.SYSTEM;
+              return COLORS.FUNCTION;
+            },
+            label: "data(label)",
+            color: COLORS.TEXT,
+            shape: "round-rectangle", // Softer corners
+            width: "label",
+            height: "label",
+            padding: "10px",
+            "font-family": "Segoe UI, Tahoma, Geneva, Verdana, sans-serif",
+            "font-size": "12px",
+            "text-valign": "center",
+            "text-halign": "center",
+            "border-width": 0,
+            "transition-property": "background-color, transform",
+            "transition-duration": "0.3s",
           },
         },
         {
-          selector: "edge", // Style for all edges
+          selector: targetNodeSelector,
           style: {
-            width: 3,
-            "line-color": "#7a96c0",
-            "target-arrow-color": "#7a96c0", // Color of the arrow head
-            "target-arrow-shape": "triangle", // Shape of the arrow head
-            "curve-style": "bezier", // How the edge curves ('bezier', 'straight', 'haystack', etc.)
-            opacity: 0.5,
+            "background-color": COLORS.TARGET,
+            "border-width": 2,
+            "border-color": "#ffffff",
+            "font-weight": "bold",
+            "z-index": 100,
           },
         },
-        // Add more style rules as needed
+        {
+          selector: "edge",
+          style: {
+            width: 2,
+            "line-color": COLORS.EDGE,
+            "target-arrow-color": COLORS.EDGE,
+            "target-arrow-shape": "vee", // Modern arrow shape
+            "curve-style": "bezier",
+            "control-point-step-size": 40,
+            opacity: 0.4,
+            "transition-property": "opacity",
+            "transition-duration": "0.3s",
+          },
+        },
+        {
+          // Interaction: Highlight on hover
+          selector: "node:selected",
+          style: {
+            "border-width": 3,
+            "border-color": "#000",
+          },
+        },
       ],
-      ///*
       layout: {
-        // Define how nodes are positioned
-        name: "cose", // 'cose' layout (Compound Spring Embedder) is good for general graphs
-        idealEdgeLength: 100, // Preferred distance between connected nodes
-        nodeOverlap: 20, // Amount of space between nodes
-        refresh: 20, // Number of iterations per animation frame
-        fit: true, // Whether to fit the graph to the viewport
-        padding: 30, // Padding around the graph
-        randomize: false, // Whether to randomize node positions before layout
-        componentSpacing: 100, // Space between disconnected components
-        nodeRepulsion: 400000, // How much nodes push each other away
-        edgeElasticity: 100, // How much edges pull nodes together
-        nestingFactor: 5, // How tightly grouped parent nodes contain child nodes
-        gravity: 80, // Attracts nodes to the center
-        numIter: 1000, // Maximum number of layout iterations
-        initialTemp: 200, // Initial temperature (for simulated annealing)
-        coolingFactor: 0.95, // How quickly temperature cools
-        minTemp: 1.0, // Minimum temperature
-        // Other layout options: 'grid', 'circle', 'breadthfirst', 'concentric'
+        name: "cose",
+        animate: true,
+        animationDuration: 800,
+        refresh: 20,
+        fit: true,
+        padding: 50,
+        // Physics adjustments for a more "artistic" cluster
+        nodeRepulsion: 10000, // Balanced spacing
+        idealEdgeLength: 80, // Keep connections tight
+        componentSpacing: 60,
+        gravity: 1.5, // Pull nodes toward the center
+        numIter: 1000,
       },
-      //*/
     });
 
-    // --- Add Interactivity Below ---
-
-    // Example: Log node ID when a node is clicked
+    // Node Click Event
     cy.on("tap", "node", function (evt) {
       const node = evt.target;
-      console.log("Tapped node id: " + node.id() + ", label: " + node.data("label"));
-      // You can add more interactive features here, e.g., highlight neighbors, show info panel
-    });
+      const nodeId = node.id();
 
-    // Example: Log edge info when an edge is clicked
-    cy.on("tap", "edge", function (evt) {
-      const edge = evt.target;
-      console.log("Tapped edge from " + edge.source().id() + " to " + edge.target().id());
+      // Visual feedback: briefly highlight the tapped node
+      node.flashClass("highlighted", 200);
+
+      vscode.postMessage({
+        type: "NODE_TAPPED",
+        payload: { id: nodeId },
+      });
     });
   } catch (error) {
-    console.error("Error initializing Cytoscape:", error);
-    document.body.innerHTML =
-      '<p style="color: red; padding: 10px;">Error initializing graph visualization.</p>';
+    console.error("Layout Initialization Error:", error);
   }
-} // end of initializeCytoscape function
+}
 
-// Listen for graph data from extension via postMessage
+/**
+ * Message listener for extension communication
+ */
 window.addEventListener("message", (event) => {
   const message = event.data;
 
   if (message.type === "INIT_GRAPH") {
-    try {
-      initializeCytoscape(message.data);
-    } catch (error) {
-      console.error("Error initializing graph:", error);
-      document.body.innerHTML =
-        '<p style="color: red; padding: 10px;">Error loading graph data.</p>';
+    initializeCytoscape(message.data, message.targetId);
+  } else if (message.type === "ADD_ELEMENTS") {
+    if (cy && message.data) {
+      // Filter out existing elements to prevent duplicates
+      const newNodes = (message.data.nodes || []).filter((n) =>
+        cy.getElementById(n.data.id).empty()
+      );
+      // [FIX] Added checks for edge.data and edge.data.id to prevent null reference errors
+      const newEdges = (message.data.edges || []).filter(
+        (e) => e.data && e.data.id && cy.getElementById(e.data.id).empty()
+      );
+
+      if (newNodes.length > 0) cy.add(newNodes);
+      if (newEdges.length > 0) cy.add(newEdges);
+
+      // Re-run layout with a smooth transition
+      if (newNodes.length > 0 || newEdges.length > 0) {
+        cy.layout({
+          name: "cose",
+          animate: true,
+          animationDuration: 600,
+          nodeRepulsion: 10000,
+          gravity: 1.2,
+          fit: false, // Don't zoom out completely on every expansion
+        }).run();
+      }
     }
   }
 });
