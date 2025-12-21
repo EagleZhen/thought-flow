@@ -137,6 +137,31 @@ export function activate(context: vscode.ExtensionContext) {
       output.show();
     })
   );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("thoughtflow.debug.testDatabase", async () => {
+      output.appendLine("Testing Database Integration...");
+
+      const session = await getGitHubSession();
+      if (!session) {
+        output.appendLine("❌ Failed to get GitHub session");
+        output.show();
+        return;
+      }
+
+      output.appendLine(`Session: ${session.account.id} (${session.account.label})`);
+      const account = await getOrCreateAccount(session);
+      if (!account) {
+        output.appendLine("❌ Failed to get account from backend");
+        output.show();
+        return;
+      }
+
+      output.appendLine(`✅ Login: ${account.login}`);
+      output.appendLine(`✅ Tier: ${account.tier}`);
+      output.show();
+    })
+  );
 }
 
 export function deactivate() {}
