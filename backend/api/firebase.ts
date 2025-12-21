@@ -30,7 +30,7 @@ export function getDb() {
 export async function getOrCreateAccount(
   userId: string,
   login: string
-): Promise<{ tier: string; login: string }> {
+): Promise<{ tier: string; login: string; licenseKey?: string; licenseExpiresAt?: Date }> {
   const db = getDb();
   const accountRef = db.collection("accounts").doc(userId);
 
@@ -40,6 +40,8 @@ export async function getOrCreateAccount(
       githubUserId: userId,
       login: login,
       tier: "free",
+      licenseKey: null,
+      licenseExpiresAt: null,
       createdAt: new Date(),
     });
     return { tier: "free", login };
@@ -47,13 +49,18 @@ export async function getOrCreateAccount(
     // Document already exists - read and return it
     if (error.code === GrpcStatus.ALREADY_EXISTS) {
       const accountSnap = await accountRef.get();
-      const data = accountSnap.data() as { tier: string; login: string } | undefined;
+      const data = accountSnap.data() as any;
 
       if (!data) {
         throw new Error("Account document exists but has no data");
       }
 
-      return { tier: data.tier, login: data.login };
+      return {
+        tier: data.tier,
+        login: data.login,
+        licenseKey: data.licenseKey || undefined,
+        licenseExpiresAt: data.licenseExpiresAt?.toDate() || undefined,
+      };
     }
     // Re-throw other errors (network, permission, etc.)
     throw error;
