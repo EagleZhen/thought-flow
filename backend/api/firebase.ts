@@ -59,3 +59,57 @@ export async function getOrCreateAccount(
     throw error;
   }
 }
+
+/**
+ * Apply a license key to a user account
+ * @param userId - GitHub numeric user ID
+ * @param licenseKey - License key to apply
+ * @returns Success status and account data, or error message
+ */
+export async function applyLicenseKey(
+  userId: string,
+  licenseKey: string
+): Promise<{ success: boolean; error?: string; tier?: string; expiresAt?: Date }> {
+  const db = getDb();
+  const licenseRef = db.collection("licenses").doc(licenseKey);
+  const accountRef = db.collection("accounts").doc(userId);
+
+  // Check if license exists
+  const licenseSnap = await licenseRef.get();
+  if (!licenseSnap.exists) {
+    return { success: false, error: "Invalid license key" };
+  }
+
+  const license = licenseSnap.data() as any;
+
+  // Check if already used
+  if (license.isUsed) {
+    return { success: false, error: "License key already used" };
+  }
+
+  // Check if expired
+  const expiresAt = license.expiresAt?.toDate();
+  if (expiresAt && expiresAt < new Date()) {
+    return { success: false, error: "License key expired" };
+  }
+
+  // Apply license to user account
+  await accountRef.update({
+    tier: license.tier,
+    licenseKey: licenseKey,
+    licenseExpiresAt: license.expiresAt,
+  });
+
+  // Mark license as used
+  await licenseRef.update({
+    isUsed: true,
+    usedBy: userId,
+    usedAt: new Date(),
+  });
+
+  return {
+    success: true,
+    tier: license.tier,
+    expiresAt: expiresAt,
+  };
+}
