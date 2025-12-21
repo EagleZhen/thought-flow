@@ -8,6 +8,8 @@ const BACKEND_URL = "https://csci3100-thought-flow.vercel.app/api";
 export interface UserAccount {
   tier: "free" | "paid";
   login: string;
+  licenseKey?: string;
+  licenseExpiresAt?: Date;
 }
 
 /**

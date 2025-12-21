@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { getOrCreateAccount } from "./firebase";
+import { getOrCreateAccount, applyLicenseKey } from "./firebase";
 
 /**
  * Verify GitHub OAuth token is valid and belongs to the claimed user
@@ -45,13 +45,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     // Validate request body exists
-    const body = req.body as { userId?: string; githubToken?: string } | undefined;
+    const body = req.body as
+      | { action?: string; userId?: string; githubToken?: string; licenseKey?: string }
+      | undefined;
     if (!body) {
       return res.status(400).json({ error: "Request body is required" });
     }
 
     // Extract and validate required fields
-    const { userId, githubToken } = body;
+    const { action, userId, githubToken, licenseKey } = body;
     if (!userId || !githubToken) {
       return res.status(400).json({ error: "Missing userId or githubToken" });
     }
@@ -62,15 +64,33 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // Verify GitHub token is valid and matches userId
-    // Returns GitHub user data if valid, null otherwise
     const githubUser = await verifyGitHubToken(githubToken, userId);
     if (!githubUser) {
       return res.status(401).json({ error: "Invalid GitHub token" });
     }
 
-    // Token is valid - get or create account with GitHub username
-    const account = await getOrCreateAccount(userId, githubUser.login);
-    return res.json(account);
+    // Handle different actions
+    if (action === "applyLicense") {
+      // Apply license key action
+      if (!licenseKey) {
+        return res.status(400).json({ error: "Missing licenseKey" });
+      }
+
+      const result = await applyLicenseKey(userId, licenseKey);
+      if (!result.success) {
+        return res.status(400).json({ error: result.error });
+      }
+
+      return res.json({
+        success: true,
+        tier: result.tier,
+        expiresAt: result.expiresAt,
+      });
+    } else {
+      // Default: get or create account
+      const account = await getOrCreateAccount(userId, githubUser.login);
+      return res.json(account);
+    }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error("Request error:", errorMessage);
