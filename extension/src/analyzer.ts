@@ -579,7 +579,7 @@ export async function analyzeCallHierarchy(
       incoming: (result.callers ?? []).map((caller) => ({
         name: caller.from.name,
         filePath: toRel(caller.from.uri),
-        line: caller.from.range.start.line + 1,
+        line: caller.from.selectionRange.start.line + 1,
       })),
       outgoing: (result.callees ?? []).map((callee) => ({
         name: callee.to.name,

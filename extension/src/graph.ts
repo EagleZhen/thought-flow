@@ -20,7 +20,7 @@ type AnalyzerFunc = (
 const toRel = (uri: vscode.Uri) => vscode.workspace.asRelativePath(uri, false);
 
 export function toFuncCall(item: vscode.CallHierarchyItem): FunctionCall {
-  const line = item.range.start.line + 1;
+  const line = item.selectionRange.start.line + 1;
   return {
     name: item.name,
     filePath: toRel(item.uri),
