@@ -106,7 +106,9 @@ function parseNodeId(id: string): { name: string; filePath: string; line: number
   try {
     const rawId = decodeURIComponent(id);
     const match = rawId.match(/^(.*?) @ (.*):(\d+)$/);
-    if (!match) return null;
+    if (!match) {
+      return null;
+    }
     return { name: match[1], filePath: match[2], line: parseInt(match[3], 10) };
   } catch {
     return null;
@@ -202,13 +204,17 @@ export function showGraphView(
           output.appendLine(`[Webview] Node tapped (expand): ${tappedNodeId}`);
 
           const result = await getDocumentAndPosition(tappedNodeId, output);
-          if (!result) return;
+          if (!result) {
+            return;
+          }
 
           const { doc, pos } = result;
 
           try {
             const rawHierarchy = await getCallHierarchyAt(doc, pos);
-            if (!rawHierarchy) return;
+            if (!rawHierarchy) {
+              return;
+            }
 
             const hierarchyGraph = transformToCytoscapeGraph(convertVsCodeHierarchy(rawHierarchy));
 
@@ -226,7 +232,9 @@ export function showGraphView(
           output.appendLine(`[Webview] Node Ctrl+clicked (navigate): ${tappedNodeId}`);
 
           const result = await getDocumentAndPosition(tappedNodeId, output);
-          if (!result) return;
+          if (!result) {
+            return;
+          }
 
           const { doc, pos } = result;
 
