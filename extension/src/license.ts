@@ -4,6 +4,12 @@ import * as vscode from "vscode";
 const BACKEND_URL = process.env.PREVIEW_BACKEND_URL || "https://csci3100-thought-flow.vercel.app/api";
 const VERCEL_BYPASS_SECRET = process.env.VERCEL_BYPASS_SECRET;
 
+// Global state key for caching account info
+const ACCOUNT_STATE_KEY = "thoughtflow.account";
+
+// In-memory cache of current account (updated on activation and after license application)
+let cachedAccount: UserAccount | null = null;
+
 /**
  * Get fetch headers with Vercel bypass if needed
  */
@@ -153,4 +159,59 @@ export async function applyLicense(
     console.error("❌ Error applying license:", error);
     return { success: false, error: "Network error" };
   }
+}
+
+/**
+ * Initialize account state on extension activation
+ * @param context - Extension context with globalState
+ */
+export async function initializeAccountState(context: vscode.ExtensionContext): Promise<void> {
+  try {
+    // Try to get session
+    const session = await getGitHubSession();
+    if (!session) {
+      console.log("No GitHub session - skipping account initialization");
+      return;
+    }
+
+    // Fetch fresh account data from backend
+    const account = await getOrCreateAccount(session);
+    if (account) {
+      cachedAccount = account;
+      await context.globalState.update(ACCOUNT_STATE_KEY, account);
+      console.log(`✅ Account initialized: ${account.login} (${account.tier})`);
+    }
+  } catch (error) {
+    console.error("❌ Failed to initialize account state:", error);
+  }
+}
+
+/**
+ * Get current cached account info
+ * @returns Current account or null if not authenticated
+ */
+export function getCurrentAccount(): UserAccount | null {
+  return cachedAccount;
+}
+
+/**
+ * Refresh account state from backend
+ * @param context - Extension context
+ * @returns Updated account info or null
+ */
+export async function refreshAccountState(
+  context: vscode.ExtensionContext
+): Promise<UserAccount | null> {
+  const session = await getGitHubSession();
+  if (!session) {
+    return null;
+  }
+
+  const account = await getOrCreateAccount(session);
+  if (account) {
+    cachedAccount = account;
+    await context.globalState.update(ACCOUNT_STATE_KEY, account);
+    console.log(`✅ Account refreshed: ${account.login} (${account.tier})`);
+  }
+  return account;
 }
