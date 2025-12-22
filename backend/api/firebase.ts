@@ -81,42 +81,67 @@ export async function applyLicenseKey(
   const licenseRef = db.collection("licenses").doc(licenseKey);
   const accountRef = db.collection("accounts").doc(userId);
 
-  // Check if license exists
-  const licenseSnap = await licenseRef.get();
-  if (!licenseSnap.exists) {
-    return { success: false, error: "Invalid license key" };
+  try {
+    // Use transaction to prevent race conditions
+    const result = await db.runTransaction(async (transaction) => {
+      // Read license document
+      const licenseSnap = await transaction.get(licenseRef);
+      if (!licenseSnap.exists) {
+        throw new Error("INVALID_LICENSE");
+      }
+
+      const license = licenseSnap.data() as any;
+
+      // Check if already used by another user (allow reuse by same user)
+      if (license.isUsed && license.usedBy !== userId) {
+        throw new Error("LICENSE_USED");
+      }
+
+      // Check if expired
+      const expiresAt = license.expiresAt?.toDate();
+      if (expiresAt && expiresAt < new Date()) {
+        throw new Error("LICENSE_EXPIRED");
+      }
+
+      // Apply license to user account (write operations - no await)
+      transaction.update(accountRef, {
+        tier: license.tier,
+        licenseKey: licenseKey,
+        licenseExpiresAt: license.expiresAt,
+      });
+
+      // Mark license as used
+      transaction.update(licenseRef, {
+        isUsed: true,
+        usedBy: userId,
+        usedAt: new Date(),
+      });
+
+      return {
+        tier: license.tier,
+        expiresAt: expiresAt,
+      };
+    });
+
+    return {
+      success: true,
+      tier: result.tier,
+      expiresAt: result.expiresAt,
+    };
+  } catch (error: any) {
+    // Handle known errors
+    if (error?.message === "INVALID_LICENSE") {
+      return { success: false, error: "Invalid license key" };
+    }
+    if (error?.message === "LICENSE_USED") {
+      return { success: false, error: "License key already used by another account" };
+    }
+    if (error?.message === "LICENSE_EXPIRED") {
+      return { success: false, error: "License key expired" };
+    }
+
+    // Re-throw unexpected errors
+    console.error("Unexpected error in applyLicenseKey:", error);
+    throw error;
   }
-
-  const license = licenseSnap.data() as any;
-
-  // Check if already used by another user (allow reuse by same user)
-  if (license.isUsed && license.usedBy !== userId) {
-    return { success: false, error: "License key already used by another account" };
-  }
-
-  // Check if expired
-  const expiresAt = license.expiresAt?.toDate();
-  if (expiresAt && expiresAt < new Date()) {
-    return { success: false, error: "License key expired" };
-  }
-
-  // Apply license to user account
-  await accountRef.update({
-    tier: license.tier,
-    licenseKey: licenseKey,
-    licenseExpiresAt: license.expiresAt,
-  });
-
-  // Mark license as used
-  await licenseRef.update({
-    isUsed: true,
-    usedBy: userId,
-    usedAt: new Date(),
-  });
-
-  return {
-    success: true,
-    tier: license.tier,
-    expiresAt: expiresAt,
-  };
 }
