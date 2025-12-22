@@ -40,7 +40,7 @@ export function activate(context: vscode.ExtensionContext) {
       }
 
       // Check tier - restrict to paid users only
-      const account = getCurrentAccount();
+      let account = getCurrentAccount();
       if (!account) {
         vscode.window.showWarningMessage(
           "Please sign in with GitHub first. The extension will prompt you to authenticate."
@@ -53,11 +53,10 @@ export function activate(context: vscode.ExtensionContext) {
         // Initialize account after successful auth
         await initializeAccountState(context);
         // Get the updated account
-        const updatedAccount = getCurrentAccount();
-        if (!updatedAccount) {
+        account = getCurrentAccount();
+        if (!account) {
           return; // Failed to get account
         }
-        // Continue with tier check below by falling through
       }
 
       if (account.tier !== "paid") {
