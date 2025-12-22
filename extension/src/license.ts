@@ -168,8 +168,11 @@ export async function applyLicense(
  */
 export async function initializeAccountState(context: vscode.ExtensionContext): Promise<void> {
   try {
-    // Try to get session
-    const session = await getGitHubSession();
+    // Try to get existing session WITHOUT prompting user
+    const session = await vscode.authentication.getSession("github", ["user:email"], {
+      createIfNone: false, // Don't prompt on activation - only when user uses a feature
+    });
+
     if (!session) {
       console.log("No GitHub session - skipping account initialization");
       return;
