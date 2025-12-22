@@ -99,7 +99,7 @@ interface CytoscapeEdge {
 - `gravity: 1.2` (lighter pull)
 - `fit: false` (don't re-center)
 
-## Visual Styling (`curve-style: "bezier"`)
+## Visual Styling
 
 - Vee-shaped arrows (`target-arrow-shape: "vee"`)
 - 40% opacity
