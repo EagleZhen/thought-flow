@@ -36,7 +36,7 @@ ThoughtFlow analyzes Python code and generates interactive call graphs, making i
 - Press `Cmd+R` / `Ctrl+R` in Extension Development Host to reload
 - Click on a function, then run:
   - `Cmd+Shift+A` / `Ctrl+Shift+A` → **Test Analyzer**
-  - `Cmd+Shift+G` / `Ctrl+Shift+G` → **Test Graph**
+  - `Cmd+Shift+G` / `Ctrl+Shift+G` → **Test Graph (with mock data)**
   - Press `Cmd+Shift+P` / `Ctrl+Shift+P` to open the Command Palette
     - Search for **"ThoughtFlow: Visualize Call Graph"** and run it
 - View logs: **View** → **Output** → Select **"ThoughtFlow"**
