@@ -3,12 +3,25 @@ import * as vscode from "vscode";
 import { getCallHierarchyAt, customProvider, analyzeCallHierarchy } from "@/analyzer";
 // Import graph functions, including the new converter helpers
 import { showGraphView, transformToCytoscapeGraph, convertVsCodeHierarchy } from "@/graph";
-import { getGitHubSession, getOrCreateAccount, applyLicense } from "@/license";
+import {
+  getGitHubSession,
+  getOrCreateAccount,
+  applyLicense,
+  initializeAccountState,
+  getCurrentAccount,
+  refreshAccountState,
+  logout,
+} from "@/license";
 import type { CytoscapeGraph, CallHierarchy } from "@/types";
 
 export function activate(context: vscode.ExtensionContext) {
   const output = vscode.window.createOutputChannel("ThoughtFlow");
   context.subscriptions.push(output);
+
+  // Initialize account state on activation
+  initializeAccountState(context).catch((err) => {
+    console.error("Failed to initialize account:", err);
+  });
 
   // Register the provider *once* on activation
   // This is required for `getCallHierarchyAt` to function
@@ -25,6 +38,46 @@ export function activate(context: vscode.ExtensionContext) {
       if (!editor) {
         vscode.window.showInformationMessage("Open a Python file and place cursor on a function.");
         return;
+      }
+
+      // Check tier - restrict to paid users only
+      let account = getCurrentAccount();
+      if (!account) {
+        vscode.window.showWarningMessage(
+          "Please sign in with GitHub first. The extension will prompt you to authenticate."
+        );
+        // Try to trigger auth by getting session (it will prompt if needed)
+        const session = await getGitHubSession();
+        if (!session) {
+          return; // User cancelled auth
+        }
+        // Initialize account after successful auth
+        await initializeAccountState(context);
+        // Get the updated account
+        account = getCurrentAccount();
+        if (!account) {
+          return; // Failed to get account
+        }
+      }
+
+      if (account.tier !== "paid") {
+        const choice = await vscode.window.showWarningMessage(
+          "ThoughtFlow requires a paid license to use the call graph visualization feature.",
+          "Enter License Key"
+        );
+        if (choice === "Enter License Key") {
+          await vscode.commands.executeCommand("thoughtflow.enterLicenseKey");
+
+          // Re-check account after license application
+          account = getCurrentAccount();
+          if (!account || account.tier !== "paid") {
+            // Still not paid tier (user cancelled, entered invalid key, or still free)
+            return;
+          }
+          // If paid tier now, continue to visualization below
+        } else {
+          return; // User didn't choose to enter license
+        }
       }
 
       // --- This is the fully implemented production flow ---
@@ -202,17 +255,67 @@ export function activate(context: vscode.ExtensionContext) {
         async () => {
           const result = await applyLicense(session, licenseKey);
           if (result.success) {
+            // Refresh account state to update cached tier
+            await refreshAccountState(context);
+
             const expiresMsg = result.expiresAt
               ? ` (expires ${result.expiresAt.toDateString()})`
               : "";
+            const accessMsg = result.tier === "paid" ? " You can now use all features!" : "";
             vscode.window.showInformationMessage(
-              `✅ License applied! Tier: ${result.tier}${expiresMsg}`
+              `✅ License applied! Tier: ${result.tier}${expiresMsg}.${accessMsg}`
             );
           } else {
             vscode.window.showErrorMessage(`❌ ${result.error}`);
           }
         }
       );
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("thoughtflow.showAccountInfo", async () => {
+      const account = getCurrentAccount();
+
+      if (!account) {
+        vscode.window.showInformationMessage(
+          "Not signed in. Run 'ThoughtFlow: Visualize Call Graph' to sign in with GitHub."
+        );
+        return;
+      }
+
+      // Build info message
+      let message = `Account: ${account.login}\nTier: ${account.tier}`;
+      if (account.licenseKey) {
+        message += `\nLicense: ${account.licenseKey}`;
+        if (account.licenseExpiresAt) {
+          message += `\nExpires: ${account.licenseExpiresAt.toDateString()}`;
+        }
+      }
+
+      vscode.window.showInformationMessage(message, { modal: true });
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("thoughtflow.logout", async () => {
+      const account = getCurrentAccount();
+
+      if (!account) {
+        vscode.window.showInformationMessage("You are not signed in.");
+        return;
+      }
+
+      const choice = await vscode.window.showWarningMessage(
+        `Log out from ${account.login}?`,
+        "Log Out",
+        "Cancel"
+      );
+
+      if (choice === "Log Out") {
+        await logout(context);
+        vscode.window.showInformationMessage("Successfully logged out.");
+      }
     })
   );
 }

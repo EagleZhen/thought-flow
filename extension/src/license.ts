@@ -1,8 +1,15 @@
 import * as vscode from "vscode";
 
 // Use preview backend URL if set in environment, otherwise use production
-const BACKEND_URL = process.env.PREVIEW_BACKEND_URL || "https://csci3100-thought-flow.vercel.app/api";
+const BACKEND_URL =
+  process.env.PREVIEW_BACKEND_URL || "https://csci3100-thought-flow.vercel.app/api";
 const VERCEL_BYPASS_SECRET = process.env.VERCEL_BYPASS_SECRET;
+
+// Global state key for caching account info
+const ACCOUNT_STATE_KEY = "thoughtflow.account";
+
+// In-memory cache of current account (updated on activation and after license application)
+let cachedAccount: UserAccount | null = null;
 
 /**
  * Get fetch headers with Vercel bypass if needed
@@ -153,4 +160,99 @@ export async function applyLicense(
     console.error("❌ Error applying license:", error);
     return { success: false, error: "Network error" };
   }
+}
+
+/**
+ * Initialize account state on extension activation
+ * @param context - Extension context with globalState
+ */
+export async function initializeAccountState(context: vscode.ExtensionContext): Promise<void> {
+  try {
+    // First, try to restore from cached state (instant, works offline)
+    const cachedState = context.globalState.get<any>(ACCOUNT_STATE_KEY);
+    if (cachedState) {
+      cachedAccount = {
+        tier: cachedState.tier,
+        login: cachedState.login,
+        licenseKey: cachedState.licenseKey,
+        licenseExpiresAt: cachedState.licenseExpiresAt
+          ? new Date(cachedState.licenseExpiresAt)
+          : undefined,
+      };
+      console.log(`✅ Restored account from cache: ${cachedAccount.login} (${cachedAccount.tier})`);
+    }
+
+    // Then try to get existing session WITHOUT prompting user
+    const session = await vscode.authentication.getSession("github", ["user:email"], {
+      createIfNone: false, // Don't prompt on activation - only when user uses a feature
+    });
+
+    if (!session) {
+      console.log("No GitHub session - using cached account only");
+      return;
+    }
+
+    // Refresh account data from backend in background (don't block on this)
+    const account = await getOrCreateAccount(session);
+    if (account) {
+      cachedAccount = account;
+      await context.globalState.update(ACCOUNT_STATE_KEY, account);
+      console.log(`✅ Account refreshed from backend: ${account.login} (${account.tier})`);
+    }
+  } catch (error) {
+    console.error("❌ Failed to initialize account state:", error);
+  }
+}
+
+/**
+ * Get current cached account info with expiration check
+ * @returns Current account or null if not authenticated or license expired
+ */
+export function getCurrentAccount(): UserAccount | null {
+  if (!cachedAccount) {
+    return null;
+  }
+
+  // Check if license has expired
+  if (cachedAccount.licenseExpiresAt && cachedAccount.licenseExpiresAt < new Date()) {
+    // License expired - return account with downgraded tier
+    return {
+      ...cachedAccount,
+      tier: "free",
+    };
+  }
+
+  return cachedAccount;
+}
+
+/**
+ * Refresh account state from backend
+ * @param context - Extension context
+ * @returns Updated account info or null
+ */
+export async function refreshAccountState(
+  context: vscode.ExtensionContext
+): Promise<UserAccount | null> {
+  const session = await getGitHubSession();
+  if (!session) {
+    return null;
+  }
+
+  const account = await getOrCreateAccount(session);
+  if (account) {
+    cachedAccount = account;
+    await context.globalState.update(ACCOUNT_STATE_KEY, account);
+    console.log(`✅ Account refreshed: ${account.login} (${account.tier})`);
+  }
+  return account;
+}
+
+/**
+ * Log out the current user by clearing account state
+ * @param context - Extension context
+ */
+export async function logout(context: vscode.ExtensionContext): Promise<void> {
+  cachedAccount = null;
+  await context.globalState.update(ACCOUNT_STATE_KEY, undefined); // Setting to undefined removes the key
+  console.log("✅ User logged out");
 }
