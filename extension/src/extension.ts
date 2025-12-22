@@ -239,11 +239,14 @@ export function activate(context: vscode.ExtensionContext) {
         async () => {
           const result = await applyLicense(session, licenseKey);
           if (result.success) {
+            // Refresh account state to update cached tier
+            await refreshAccountState(context);
+
             const expiresMsg = result.expiresAt
               ? ` (expires ${result.expiresAt.toDateString()})`
               : "";
             vscode.window.showInformationMessage(
-              `✅ License applied! Tier: ${result.tier}${expiresMsg}`
+              `✅ License applied! Tier: ${result.tier}${expiresMsg}. You can now use all features!`
             );
           } else {
             vscode.window.showErrorMessage(`❌ ${result.error}`);
