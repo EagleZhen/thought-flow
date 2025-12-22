@@ -19,8 +19,8 @@ Extension          Vercel Backend         GitHub API         Firestore
 
 The extension calls a single endpoint on Vercel. The backend:
 
-1. Verifies the GitHub token is valid and matches the user ID
-2. Performs the requested action (get account or apply license)
+1. Verifies the GitHub token is valid and matches the user ID (via GitHub API)
+2. Performs the requested action (get account or apply license) using Firestore
 3. Returns user's license tier, GitHub username, and license details
 
 ---
@@ -87,14 +87,15 @@ The extension calls a single endpoint on Vercel. The backend:
 
 **Files:**
 
-- `backend/api/index.ts` - HTTP handler, GitHub API verification, request routing
+- `backend/api/index.ts` - HTTP handler, GitHub token verification, request routing
 - `backend/api/firebase.ts` - Firestore operations (accounts & licenses)
 
 **Key Patterns:**
 
-- **Get-or-create**: Uses Firestore's `create()` with `ALREADY_EXISTS` error handling
-- **License application**: Atomic transaction to prevent race conditions
-- **Validation order**: Check expiration before checking if used (better error messages)
+- **Token verification**: Calls [GitHub Users API](https://docs.github.com/en/rest/users/users) (`https://api.github.com/user` endpoint) to validate token and verify ID match
+- **Get-or-create**: Attempts `create()`, falls back to `get()` on `ALREADY_EXISTS` error
+- **License validation**: Atomic transaction checks expiration → usage → updates both collections
+- **Reapplication allowed**: Same user can re-enter their key (checked via `usedBy !== userId`)
 
 ---
 
