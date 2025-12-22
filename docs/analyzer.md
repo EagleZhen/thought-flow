@@ -2,227 +2,151 @@
 
 ## Overview
 
-This module (`analyzer.ts`) implements a **custom Call Hierarchy Provider** for **Python** in **Visual Studio Code**, using **regex and indentation analysis** to determine:
+`analyzer.ts` implements a custom Call Hierarchy for Python using VS Code commands plus lightweight regex and indentation heuristics to produce:
 
-- **Incoming calls** (who calls a function)
-- **Outgoing calls** (what functions a function calls)
+- Incoming calls (who calls a function)
+- Outgoing calls (what a function calls)
 
-It is **lightweight**, **self-contained**, and **requires no external parser**.
-
----
-
-## Core Entry Point
-
-```ts
-export async function getCallHierarchy(
-    document: vscode.TextDocument,
-    position: vscode.Position
-)
-```
-
-### Flow Summary
-
-1. **Create cancellation token** → supports timeout/cancel
-2. **Prepare target symbol** → `prepareCallHierarchy()`
-3. **Get incoming calls** → `provideCallHierarchyIncomingCalls()`
-4. **Get outgoing calls** → `provideCallHierarchyOutgoingCalls()`
-5. **Return structured result** or `null`
-
-```ts
-{
-    function: CallHierarchyItem,
-    callers: CallHierarchyIncomingCall[],
-    callees: CallHierarchyOutgoingCall[]
-}
-```
+It also writes a summarized `callHierarchy.json` under `.vscode/` for the active workspace.
 
 ---
 
-## 1. `prepareCallHierarchy()`
+## Core Entry Points
 
-**Goal**: Identify the symbol under the cursor.
+- `getCallHierarchyAt(document, position)` → `Promise<{ function, callers, callees } | null>`
+- `analyzeCallHierarchy(context, output)` → `Promise<CallHierarchy | undefined>`
 
-### Logic Flow
+### `getCallHierarchyAt` Flow
 
-```mermaid
-graph TD
-    A[Get word at cursor] --> B{Word exists?}
-    B -- No --> C[Return undefined]
-    B -- Yes --> D[Check current line: def pattern?]
-    D -- Yes --> E[Match def func_name(?]
-    E -- Name matches word? --> F[Yes: Return item for definition]
-    E -- No --> G[Return item for call site]
-    D -- No --> G
-```
+1. Detect if the cursor is on a function definition (`isCursorOnDefinition`).
+2. Prepare a `CallHierarchyItem` at the cursor via `vscode.prepareCallHierarchy`.
+3. If none returned, log and return `null`.
+4. If on the definition: ask providers for incoming and outgoing calls directly using the prepared item.
+5. If not on the definition:
+   - Ask providers for outgoing calls using the prepared item (so users can still inspect what the symbol under cursor calls).
+   - For incoming calls, find the nearest enclosing `def` with `findNearestDefinitionCallHierarchyItem`:
+     - If found, call the custom provider directly for that definition (bypassing language providers to avoid "invalid item" errors).
+     - If no enclosing def found, return an empty incoming calls array (do not query language providers).
+   - Add a synthetic incoming call from the definition to the clicked call site when:
+     - The click is in the same document as the definition
+     - The position is inside the function body (position line > def line)
+     - There isn't already an incoming entry from the same function
+     - When inside the function body, show ONLY the synthetic incoming (the definition itself), removing external callers.
+6. Return `{ function, callers, callees }`.
 
-### Key Patterns
+### `analyzeCallHierarchy` Flow
 
-- **Definition**: `/^\s*def\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(/`
-- **Call site fallback**: Any word under cursor → treated as function
-
-> Returns `CallHierarchyItem` with:
-> - `SymbolKind.Function`
-> - Correct `uri`, `range`, `selectionRange`
-
----
-
-## 2. `provideCallHierarchyIncomingCalls()`
-
-**Goal**: Find **all calls to `targetName`** across workspace.
-
-### Step-by-Step Algorithm
-
-| Step | Action |
-|------|-------|
-| 1 | Find all `.py` files (exclude `node_modules`) |
-| 2 | For each file: |
-|   2.1 | Build **function definition map** using indentation |
-|   2.2 | Regex search: `\btargetName\s*\(` |
-|   2.3 | **Skip**: definition lines (`def targetName(`) |
-|   2.4 | **Skip**: recursive self-calls |
-|   2.5 | Map call line → containing function |
-|   2.6 | Create `CallHierarchyIncomingCall` |
-
-### Function Boundary Detection
-
-```ts
-indent = position of first non-whitespace in "def" line
-while next line has indent > def_indent → still in function
-```
-
-- Handles nested functions
-- Correctly identifies module-level calls (`<module>`)
-
-### Filters
-
-| Filter | Purpose |
-|------|--------|
-| `defLinePattern` | Avoid counting `def foo(` as a call |
-| `caller === targetName` | Skip recursion (e.g., `factorial` → `factorial`) |
+1. Show the output channel and log "🚀 Command started".
+2. If no active editor, show an info message and return `undefined`.
+3. Log the file name and cursor position to the output channel.
+4. Invoke `getCallHierarchyAt`; if it returns `null`, show an info message and return `undefined`.
+5. Build a workspace-relative `CallHierarchy` object (1-indexed lines for display).
+6. If workspace folder exists:
+   - Create `.vscode` directory if needed
+   - Write `.vscode/callHierarchy.json` with the analyzed data
+   - Log success to output channel, notify user, and open the file
+7. If no workspace folder exists, show a warning and skip file creation.
+8. Log "--- Complete ---" and return the analyzed data.
+9. Errors are logged to output channel, shown to user via error message, and rethrown.
 
 ---
 
-## 3. `provideCallHierarchyOutgoingCalls()`
+## Custom Provider Pieces
 
-**Goal**: Find **all function calls inside the target function's body**.
+### `prepareCallHierarchy`
 
-### Step-by-Step Algorithm
+- Gets the word at cursor; returns `undefined` if none.
+- If the current line matches `def <name>(` for that word, returns a `CallHierarchyItem` for the definition.
+- Otherwise returns a `CallHierarchyItem` for the word at cursor (could be a call site, variable, or any symbol).
 
-| Step | Action |
-|------|-------|
-| 1 | Locate `def` line (search up/down if needed) |
-| 2 | Measure `defIndent` |
-| 3 | Find first non-empty line after `def` → `bodyStart` |
-| 4 | Measure `bodyIndent` (must be > `defIndent`) |
-| 5 | Walk lines until indent drops below `bodyIndent` → `bodyEnd` |
-| 6 | Extract `bodyText` |
-| 7 | Regex: `/[A-Za-z_][A-Za-z0-9_]*\s*\(/g` |
-| 8 | **Skip self-calls** |
-| 9 | Create `CallHierarchyOutgoingCall` |
+### `provideCallHierarchyIncomingCalls`
 
-### Body Extraction Example
+- Scans all `**/*.py` files (excluding `node_modules`).
+- Regex: `\b<targetName>\s*\(`; skips `def <targetName>(` lines.
+- For each call site found, uses `findNearestDefinitionCallHierarchyItem` to determine the enclosing function.
+- If no enclosing function is found, marks the caller as `<module>` (module-level code).
+- Skips self-recursive callers (when the enclosing function has the same name as the target).
 
-```python
-  def calculate(x):
-      a = add(x, 1)
-      return mul(a, 2)
-```
+### `provideCallHierarchyOutgoingCalls`
 
-- `defIndent` = 2
-- `bodyIndent` = 6
-- Body: lines with indent ≥ 6
-- Extracted text scanned for `add(`, `mul(`
-
----
-
-## Helper: `escapeRegExp(str)`
-
-**Purpose**: Safely use function names in regex.
-
-```ts
-escapeRegExp("my.func") → "my\\.func"
-```
-
-Prevents:
-- `.` → any char
-- `(` → grouping
-- `*` → zero or more
-
-Used in **both incoming and outgoing** call detection.
+- This part is just for later custom development on outgoing calls.
+- Locates the function definition line using regex `^\s*def\s+<name>\s*\(`.
+- If the initial line (from `item.selectionRange`) is not a definition line, searches upward first, then searches the entire document if needed.
+- Determines the function body boundaries using Python's indentation rules:
+  - Gets the indentation of the `def` line
+  - Finds the first non-blank line after the definition (the body start)
+  - The body indent must be greater than the def indent
+  - The body ends when a line with indentation less than the body indent is encountered
+- Extracts the body text between body start and body end.
+- Regex: `\b([A-Za-z_][A-Za-z0-9_]*)\s*\(` to collect all function calls in the body.
+- Skips self-recursive calls.
+- Returns each match as a `CallHierarchyOutgoingCall` with its range in the body.
 
 ---
 
-## Data Flow Diagram
+### `isCursorOnDefinition`
 
-```mermaid
-graph LR
-    UserClick --> getCallHierarchy
-    getCallHierarchy --> prepareCallHierarchy
-    prepareCallHierarchy --> targetItem
-    targetItem --> incomingProvider
-    targetItem --> outgoingProvider
+- Determines whether the cursor is positioned on a Python function definition line.
+- Strategy:
+  1. Gets the word at cursor position; returns `false` if none.
+  2. Quick line-based detection: tests if the current line matches `^\s*def\s+<name>\s*\(` for that word.
+  3. If quick detection passes, returns `true`.
+  4. Fallback: calls `vscode.prepareCallHierarchy` to let language providers participate, then checks if the returned item's selectionRange line contains a `def` for the same name.
+  5. Returns `false` if any step fails or no definition is found.
 
-    incomingProvider --> WorkspaceScan
-    WorkspaceScan --> FileLoop
-    FileLoop --> BuildDefMap
-    BuildDefMap --> RegexCalls
-    RegexCalls --> FilterDefLines
-    FilterDefLines --> FilterRecursion
-    FilterRecursion --> MapToCaller
-    MapToCaller --> incomingResults
+### `findNearestDefinitionCallHierarchyItem`
 
-    outgoingProvider --> FindDefLine
-    FindDefLine --> MeasureIndent
-    MeasureIndent --> ExtractBody
-    ExtractBody --> RegexCallsInBody
-    RegexCallsInBody --> FilterSelf
-    FilterSelf --> outgoingResults
-
-    incomingResults --> FinalResult
-    outgoingResults --> FinalResult
-```
-
----
-
-## Key Design Decisions
-
-| Decision | Reason |
-|--------|--------|
-| **Regex + Indentation** | Fast, no AST parser needed |
-| **Skip self-calls** | Avoid clutter in call graph |
-| **Fallback to call site** | Works even if cursor not on `def` |
-| **Cancellation token** | Prevent hangs on large codebases |
-| **Module-level = `<module>`** | Clear distinction from functions |
+- Purpose: walk upward from a position to find the nearest enclosing `def` with less indentation than the current line, returning a `CallHierarchyItem` for that definition.
+- How it works:
+  1. Starts with the indentation of the clicked line as `currentIndent`.
+  2. Walks upward line by line from `position.line - 1`.
+  3. Skips blank lines (lines with no text after trimming).
+  4. Ignores lines with indentation >= `currentIndent` (same level or deeper).
+  5. When a line with indentation < `currentIndent` is encountered:
+     - Tests it against `^\s*def\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(`.
+     - If it's a `def`, creates and returns a `CallHierarchyItem` for that function.
+     - If not a `def`, lowers `currentIndent` to that line's indentation and continues searching.
+  6. Stops if `currentIndent` reaches 0 (top-level) and no def is found.
+  7. Returns `undefined` if no enclosing function is found.
+- Uses:
+  - Map incoming call sites to their containing function in `provideCallHierarchyIncomingCalls`.
+  - Find the enclosing function when cursor is not on a definition in `getCallHierarchyAt`.
+  - Powers the synthetic incoming edge logic when the cursor is inside a function body.
 
 ---
 
-## Limitations (by Design)
+## Helper
 
-| Limitation | Cause |
-|----------|-------|
-| False positives in strings | `"call add()" → matched` |
-| No import alias resolution | `from lib import x as y` → `y()` not linked |
-| No dynamic calls | `getattr(obj, "method")()` ignored |
-| No class method support | `self.method()` not distinguished |
+- `escapeRegExp(str)`: escapes regex metacharacters (`[.*+?^${}()|[\]\\]`) by prefixing them with backslashes; used in both incoming/outgoing regex construction and definition pattern matching.
 
 ---
 
-## Summary: Call Graph Construction
+## Behavior and Types
 
-```ts
-Call Graph = {
-  node: targetFunction
-  edges_in:  [caller → target]
-  edges_out: [target → callee]
-}
-```
+- `getCallHierarchyAt` returns `null` when no symbol is prepared at the cursor position; otherwise returns an object with `{ function, callers, callees }`.
+- When cursor is not on a definition and no enclosing function is found, incoming calls will be an empty array (does not query language providers in this case).
+- When cursor is inside a function body (not on the definition line), only the synthetic incoming call (the definition itself) is shown; external callers are filtered out.
+- `analyzeCallHierarchy` returns `CallHierarchy | undefined`:
+  - Returns `undefined` for early exits (no active editor, no symbol found, no workspace folder).
+  - Returns the `CallHierarchy` object when successful.
+  - Errors are logged to the output channel, shown to the user via error message, and rethrown.
+- JSON output is written to `.vscode/callHierarchy.json` with workspace-relative paths and 1-indexed lines for display.
 
-Built via:
-- **Incoming**: Global regex search + containment analysis
-- **Outgoing**: Local body scan + indentation boundary
+---
 
-**No external tools. No LSP. Pure VS Code API.**
+## Limitations (current implementation)
 
---- 
+- Regex-based; may include false positives (e.g., names inside strings/comments).
+- No alias/import resolution; `y()` will not be tied to `from x import y as z`.
+- Does not distinguish methods (`self.foo`) vs free functions.
+- Outgoing analysis uses indentation-based body detection, which may fail on malformed Python code.
+- The `provideCallHierarchyOutgoingCalls` searches for the definition line if not initially on one, first upward then through the entire document if needed.
 
-*Fast, accurate enough, and fully local.*
+---
+
+## Summary
+
+Call graph nodes and edges are built from:
+
+- **Incoming**: workspace regex scan + nearest enclosing `def` resolution
+- **Outgoing**: function-body regex scan + indentation boundaries
