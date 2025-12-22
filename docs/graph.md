@@ -198,7 +198,6 @@ VS Code automatically handles webview security.
 | **Webview vs custom editor**     | Webview simpler for interactive visualization          |
 | **Message-based communication**  | Clean separation between graph logic and visualization |
 | **Different expansion settings** | Faster animation, no re-centering on node click        |
-| **Message-based communication**  | Clean separation between graph logic and visualization |
 
 ## Limitations
 
