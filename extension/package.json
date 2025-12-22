@@ -65,6 +65,10 @@
       {
         "command": "thoughtflow.showAccountInfo",
         "title": "ThoughtFlow: Show Account Info"
+      },
+      {
+        "command": "thoughtflow.logout",
+        "title": "ThoughtFlow: Log Out"
       }
     ],
     "keybindings": [

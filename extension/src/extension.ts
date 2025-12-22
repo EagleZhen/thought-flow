@@ -10,6 +10,7 @@ import {
   initializeAccountState,
   getCurrentAccount,
   refreshAccountState,
+  logout,
 } from "@/license";
 import type { CytoscapeGraph, CallHierarchy } from "@/types";
 
@@ -293,6 +294,28 @@ export function activate(context: vscode.ExtensionContext) {
       }
 
       vscode.window.showInformationMessage(message, { modal: true });
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("thoughtflow.logout", async () => {
+      const account = getCurrentAccount();
+
+      if (!account) {
+        vscode.window.showInformationMessage("You are not signed in.");
+        return;
+      }
+
+      const choice = await vscode.window.showWarningMessage(
+        `Log out from ${account.login}?`,
+        "Log Out",
+        "Cancel"
+      );
+
+      if (choice === "Log Out") {
+        await logout(context);
+        vscode.window.showInformationMessage("Successfully logged out.");
+      }
     })
   );
 }

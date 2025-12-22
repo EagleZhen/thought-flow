@@ -215,3 +215,13 @@ export async function refreshAccountState(
   }
   return account;
 }
+
+/**
+ * Log out the current user by clearing account state
+ * @param context - Extension context
+ */
+export async function logout(context: vscode.ExtensionContext): Promise<void> {
+  cachedAccount = null;
+  await context.globalState.update(ACCOUNT_STATE_KEY, undefined); // Setting to undefined removes the key
+  console.log("✅ User logged out");
+}
