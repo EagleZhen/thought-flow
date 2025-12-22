@@ -114,24 +114,35 @@ export async function applyLicense(
   licenseKey: string
 ): Promise<{ success: boolean; error?: string; tier?: string; expiresAt?: Date }> {
   try {
+    const headers = getFetchHeaders();
+    const requestBody = {
+      action: "applyLicense",
+      userId: session.account.id,
+      githubToken: session.accessToken,
+      licenseKey: licenseKey.trim().toUpperCase(), // Normalize key format
+    };
+
+    console.log("🔍 DEBUG: Applying license");
+    console.log("  URL:", BACKEND_URL);
+    console.log("  Headers:", headers);
+    console.log("  Request:", { ...requestBody, githubToken: "***" });
+
     const response = await fetch(BACKEND_URL, {
       method: "POST",
-      headers: getFetchHeaders(),
-      body: JSON.stringify({
-        action: "applyLicense",
-        userId: session.account.id,
-        githubToken: session.accessToken,
-        licenseKey: licenseKey.trim().toUpperCase(), // Normalize key format
-      }),
+      headers: headers,
+      body: JSON.stringify(requestBody),
     });
+
+    console.log("  Response status:", response.status);
 
     if (!response.ok) {
       const errorData = (await response.json()) as any;
-      console.error(`❌ Backend error (${response.status}):`, errorData.error);
+      console.error(`❌ Backend error (${response.status}):`, errorData);
       return { success: false, error: errorData.error || "Failed to apply license" };
     }
 
     const result = (await response.json()) as any;
+    console.log("  Response data:", result);
     console.log(`✅ License applied: ${result.tier}`);
     return {
       success: true,
