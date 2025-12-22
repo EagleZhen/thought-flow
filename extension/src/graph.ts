@@ -106,9 +106,46 @@ function parseNodeId(id: string): { name: string; filePath: string; line: number
   try {
     const rawId = decodeURIComponent(id);
     const match = rawId.match(/^(.*?) @ (.*):(\d+)$/);
-    if (!match) return null;
+    if (!match) {
+      return null;
+    }
     return { name: match[1], filePath: match[2], line: parseInt(match[3], 10) };
   } catch {
+    return null;
+  }
+}
+
+/**
+ * Helper function to get document and position from node ID
+ * Extracts common logic used by both expand and navigate handlers
+ */
+async function getDocumentAndPosition(
+  nodeId: string,
+  output: vscode.OutputChannel
+): Promise<{ doc: vscode.TextDocument; pos: vscode.Position } | null> {
+  const parsed = parseNodeId(nodeId);
+  if (!parsed) {
+    output.appendLine(`[Extension] ❌ Failed to parse ID: ${nodeId}`);
+    return null;
+  }
+
+  const workspaceFolders = vscode.workspace.workspaceFolders;
+  if (!workspaceFolders || workspaceFolders.length === 0) {
+    return null;
+  }
+
+  const fileUri = vscode.Uri.joinPath(workspaceFolders[0].uri, parsed.filePath);
+
+  try {
+    const doc = await vscode.workspace.openTextDocument(fileUri);
+    const zeroBasedLine = Math.max(0, parsed.line - 1);
+    const lineText = doc.lineAt(zeroBasedLine).text;
+    const nameIndex = lineText.indexOf(parsed.name);
+    const pos = new vscode.Position(zeroBasedLine, nameIndex >= 0 ? nameIndex : 0);
+
+    return { doc, pos };
+  } catch (e) {
+    output.appendLine(`[ERROR] opening document: ${e}`);
     return null;
   }
 }
@@ -123,7 +160,7 @@ export function showGraphView(
   const panel = vscode.window.createWebviewPanel(
     "thoughtflowGraph",
     "ThoughtFlow - Call Graph",
-    vscode.ViewColumn.One,
+    vscode.ViewColumn.Beside, // Open beside current editor, not replacing it
     {
       enableScripts: true,
       localResourceRoots: [vscode.Uri.joinPath(context.extensionUri, "dist", "templates")],
@@ -162,29 +199,22 @@ export function showGraphView(
         output.appendLine(`[DEBUG] Received message type: ${message.type}`);
 
         if (message.type === "NODE_TAPPED") {
+          // Regular click - Expand graph only
           const tappedNodeId = message.payload.id;
-          output.appendLine(`[Webview] Node tapped: ${tappedNodeId}`);
+          output.appendLine(`[Webview] Node tapped (expand): ${tappedNodeId}`);
 
-          const parsed = parseNodeId(tappedNodeId);
-          if (!parsed) {
-            output.appendLine(`[Extension] ❌ Failed to parse ID: ${tappedNodeId}`);
+          const result = await getDocumentAndPosition(tappedNodeId, output);
+          if (!result) {
             return;
           }
 
-          const workspaceFolders = vscode.workspace.workspaceFolders;
-          if (!workspaceFolders || workspaceFolders.length === 0) return;
-
-          const fileUri = vscode.Uri.joinPath(workspaceFolders[0].uri, parsed.filePath);
+          const { doc, pos } = result;
 
           try {
-            const doc = await vscode.workspace.openTextDocument(fileUri);
-            const zeroBasedLine = Math.max(0, parsed.line - 1);
-            const lineText = doc.lineAt(zeroBasedLine).text;
-            const nameIndex = lineText.indexOf(parsed.name);
-            const pos = new vscode.Position(zeroBasedLine, nameIndex >= 0 ? nameIndex : 0);
-
             const rawHierarchy = await getCallHierarchyAt(doc, pos);
-            if (!rawHierarchy) return;
+            if (!rawHierarchy) {
+              return;
+            }
 
             const hierarchyGraph = transformToCytoscapeGraph(convertVsCodeHierarchy(rawHierarchy));
 
@@ -195,6 +225,28 @@ export function showGraphView(
             output.appendLine(`[Extension] Sent new elements to webview`);
           } catch (e) {
             output.appendLine(`[ERROR] processing node tap: ${e}`);
+          }
+        } else if (message.type === "NODE_CTRL_CLICKED") {
+          // Ctrl+Click - Navigate to code only (no expansion)
+          const tappedNodeId = message.payload.id;
+          output.appendLine(`[Webview] Node Ctrl+clicked (navigate): ${tappedNodeId}`);
+
+          const result = await getDocumentAndPosition(tappedNodeId, output);
+          if (!result) {
+            return;
+          }
+
+          const { doc, pos } = result;
+
+          try {
+            // Navigate to the code location in the editor
+            await vscode.window.showTextDocument(doc, {
+              selection: new vscode.Range(pos, pos),
+              viewColumn: vscode.ViewColumn.One, // Go back to original code panel
+            });
+            output.appendLine(`[Extension] Navigated to code location`);
+          } catch (e) {
+            output.appendLine(`[ERROR] processing Ctrl+click: ${e}`);
           }
         }
       },

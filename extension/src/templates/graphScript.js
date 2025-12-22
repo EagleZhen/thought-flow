@@ -96,18 +96,31 @@ function initializeCytoscape(graphData, targetNodeId) {
       },
     });
 
-    // Node Click Event
+    // Node Click Event - Check for Ctrl/Cmd modifier
     cy.on("tap", "node", function (evt) {
       const node = evt.target;
       const nodeId = node.id();
+      const originalEvent = evt.originalEvent;
 
       // Visual feedback: briefly highlight the tapped node
       node.flashClass("highlighted", 200);
 
-      vscode.postMessage({
-        type: "NODE_TAPPED",
-        payload: { id: nodeId },
-      });
+      // Check if Ctrl (Windows/Linux) or Cmd (Mac) key is pressed
+      const isCtrlClick = originalEvent.ctrlKey || originalEvent.metaKey;
+
+      if (isCtrlClick) {
+        // Ctrl+Click - Navigate to code only
+        vscode.postMessage({
+          type: "NODE_CTRL_CLICKED",
+          payload: { id: nodeId },
+        });
+      } else {
+        // Regular Click - Expand graph
+        vscode.postMessage({
+          type: "NODE_TAPPED",
+          payload: { id: nodeId },
+        });
+      }
     });
   } catch (error) {
     console.error("Layout Initialization Error:", error);
