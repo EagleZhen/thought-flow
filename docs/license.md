@@ -61,7 +61,7 @@ interface UserAccount {
 Registered in [extension/src/extension.ts](../extension/src/extension.ts):
 
 - **`thoughtflow.showAccountInfo`** - Display account tier and license status in modal
-- **`thoughtflow.applyLicense`** - Prompt for license key and apply it
+- **`thoughtflow.enterLicenseKey`** - Prompt for license key and apply it
 - **`thoughtflow.logout`** - Clear account state with confirmation dialog
 
 ## Client-Side Expiration
