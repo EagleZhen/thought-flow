@@ -1,10 +1,6 @@
-# ThoughtFlow Documentation
+# Technical Documentation of Thought Flow
 
-Welcome to the ThoughtFlow technical documentation! This directory contains detailed guides for understanding and working with the codebase.
-
-## What is ThoughtFlow?
-
-ThoughtFlow is a VS Code extension that visualizes Python code execution flow as interactive call graphs. It helps developers understand complex codebases by showing how functions call each other, with an intuitive click-to-expand graph interface.
+This directory contains the detailed technical documentation for understanding and working with the codebase.
 
 ## Architecture Overview
 
