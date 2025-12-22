@@ -3,18 +3,18 @@
 ## Architecture
 
 ```
-VS Code Extension          Vercel Backend           Firebase Firestore
-       |                        |                           |
-       |--POST /api------------>|                           |
-       | (userId + token)       |                           |
-       |                        |--Verify Token------------>|
-       |                        | (GitHub API)              |
-       |                        |                           |
-       |                        |--Get/Create Account------>|
-       |                        |  or Apply License         |
-       |                        |                           |
-       |<--{tier, login, ...}---|                           |
-       |
+Extension          Vercel Backend         GitHub API         Firestore
+    |                     |                     |                 |
+    |--POST /api--------->|                     |                 |
+    | (userId + token)    |                     |                 |
+    |                     |--Verify Token------>|                 |
+    |                     |<--{id, login}-------|                 |
+    |                     |                                       |
+    |                     |--Get/Create Account or Apply License->|
+    |                     |<--Account Data------------------------|
+    |                     |                                       |
+    |<--Account/License---|                     |                 |
+    |                     |                     |                 |
 ```
 
 The extension calls a single endpoint on Vercel. The backend:
