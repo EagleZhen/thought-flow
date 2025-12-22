@@ -6,24 +6,6 @@ A VS Code extension that helps developers understand complex codebases by visual
 
 ThoughtFlow analyzes Python code and generates interactive call graphs, making it easier to trace execution flow and understand how functions interact.
 
-## Project Structure
-
-- `docs/` - Documentation
-- `experiments/` - Sandbox for prototyping new approaches
-- `extension/` - VS Code extension (TypeScript)
-  - `src/` - Source code (supports `@/*` path aliases)
-    - `extension.ts` - Extension activation, command registration, orchestration
-    - `analyzer.ts` - Code analysis using VS Code LSP
-    - `graph.ts` - Graph visualization with Cytoscape.js
-    - `license.ts` - User and license management
-    - `types.ts` - Shared type definitions
-    - `templates/` - HTML/CSS/JS templates for webview
-  - `dist/` - Production build output (Webpack)
-  - `out/` - Development build output (tests)
-- `license-service/` - Backend API for user and license management (to be implemented)
-- `llm-service/` - Optional LLM integration (future)
-- `test-workspace/` - Sample Python projects for testing the extension
-
 ## Getting Started
 
 **Prerequisites:** VS Code, Node.js
