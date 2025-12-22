@@ -63,9 +63,7 @@ export async function getOrCreateAccount(
   try {
     const response = await fetch(BACKEND_URL, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: getFetchHeaders(),
       body: JSON.stringify({
         userId: session.account.id,
         githubToken: session.accessToken,
@@ -118,9 +116,7 @@ export async function applyLicense(
   try {
     const response = await fetch(BACKEND_URL, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: getFetchHeaders(),
       body: JSON.stringify({
         action: "applyLicense",
         userId: session.account.id,
