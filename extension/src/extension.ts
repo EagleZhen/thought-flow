@@ -66,8 +66,17 @@ export function activate(context: vscode.ExtensionContext) {
         );
         if (choice === "Enter License Key") {
           await vscode.commands.executeCommand("thoughtflow.enterLicenseKey");
+
+          // Re-check account after license application
+          account = getCurrentAccount();
+          if (!account || account.tier !== "paid") {
+            // Still not paid tier (user cancelled, entered invalid key, or still free)
+            return;
+          }
+          // If paid tier now, continue to visualization below
+        } else {
+          return; // User didn't choose to enter license
         }
-        return;
       }
 
       // --- This is the fully implemented production flow ---
