@@ -3,12 +3,24 @@ import * as vscode from "vscode";
 import { getCallHierarchyAt, customProvider, analyzeCallHierarchy } from "@/analyzer";
 // Import graph functions, including the new converter helpers
 import { showGraphView, transformToCytoscapeGraph, convertVsCodeHierarchy } from "@/graph";
-import { getGitHubSession, getOrCreateAccount, applyLicense } from "@/license";
+import {
+  getGitHubSession,
+  getOrCreateAccount,
+  applyLicense,
+  initializeAccountState,
+  getCurrentAccount,
+  refreshAccountState,
+} from "@/license";
 import type { CytoscapeGraph, CallHierarchy } from "@/types";
 
 export function activate(context: vscode.ExtensionContext) {
   const output = vscode.window.createOutputChannel("ThoughtFlow");
   context.subscriptions.push(output);
+
+  // Initialize account state on activation
+  initializeAccountState(context).catch((err) => {
+    console.error("Failed to initialize account:", err);
+  });
 
   // Register the provider *once* on activation
   // This is required for `getCallHierarchyAt` to function
@@ -24,6 +36,31 @@ export function activate(context: vscode.ExtensionContext) {
       const editor = vscode.window.activeTextEditor;
       if (!editor) {
         vscode.window.showInformationMessage("Open a Python file and place cursor on a function.");
+        return;
+      }
+
+      // Check tier - restrict to paid users only
+      const account = getCurrentAccount();
+      if (!account) {
+        const choice = await vscode.window.showWarningMessage(
+          "Please sign in with GitHub to use ThoughtFlow",
+          "Sign In"
+        );
+        if (choice === "Sign In") {
+          await vscode.commands.executeCommand("thoughtflow.debug.testGitHubAuth");
+        }
+        return;
+      }
+
+      if (account.tier !== "paid") {
+        const choice = await vscode.window.showWarningMessage(
+          "ThoughtFlow requires a paid license. Free tier users can test with debug commands.",
+          "Enter License Key",
+          "Learn More"
+        );
+        if (choice === "Enter License Key") {
+          await vscode.commands.executeCommand("thoughtflow.enterLicenseKey");
+        }
         return;
       }
 
