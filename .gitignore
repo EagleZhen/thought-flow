@@ -32,6 +32,9 @@ out/
 # Optional eslint cache
 .eslintcache
 
+# Environment variables (local only)
+.env.local
+
 # Output of 'npm pack'
 *.tgz
 

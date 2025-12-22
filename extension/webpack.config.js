@@ -4,6 +4,7 @@
 
 const path = require("path");
 const CopyWebpackPlugin = require("copy-webpack-plugin");
+const Dotenv = require("dotenv-webpack");
 
 //@ts-check
 /** @typedef {import('webpack').Configuration} WebpackConfig **/
@@ -51,6 +52,13 @@ const extensionConfig = {
   plugins: [
     new CopyWebpackPlugin({
       patterns: [{ from: "src/templates", to: "templates" }],
+    }),
+    new Dotenv({
+      path: path.resolve(__dirname, ".env.local"),
+      safe: false, // Don't require .env.example
+      systemvars: true, // Load system environment variables as well
+      silent: true, // Don't fail if .env.local doesn't exist
+      defaults: false,
     }),
   ],
 };
