@@ -42,14 +42,22 @@ export function activate(context: vscode.ExtensionContext) {
       // Check tier - restrict to paid users only
       const account = getCurrentAccount();
       if (!account) {
-        const choice = await vscode.window.showWarningMessage(
-          "Please sign in with GitHub to use ThoughtFlow",
-          "Sign In"
+        vscode.window.showWarningMessage(
+          "Please sign in with GitHub first. The extension will prompt you to authenticate."
         );
-        if (choice === "Sign In") {
-          await vscode.commands.executeCommand("thoughtflow.debug.testGitHubAuth");
+        // Try to trigger auth by getting session (it will prompt if needed)
+        const session = await getGitHubSession();
+        if (!session) {
+          return; // User cancelled auth
         }
-        return;
+        // Initialize account after successful auth
+        await initializeAccountState(context);
+        // Get the updated account
+        const updatedAccount = getCurrentAccount();
+        if (!updatedAccount) {
+          return; // Failed to get account
+        }
+        // Continue with tier check below by falling through
       }
 
       if (account.tier !== "paid") {
