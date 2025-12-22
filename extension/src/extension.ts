@@ -61,9 +61,8 @@ export function activate(context: vscode.ExtensionContext) {
 
       if (account.tier !== "paid") {
         const choice = await vscode.window.showWarningMessage(
-          "ThoughtFlow requires a paid license. Free tier users can test with debug commands.",
-          "Enter License Key",
-          "Learn More"
+          "ThoughtFlow requires a paid license to use the call graph visualization feature.",
+          "Enter License Key"
         );
         if (choice === "Enter License Key") {
           await vscode.commands.executeCommand("thoughtflow.enterLicenseKey");
