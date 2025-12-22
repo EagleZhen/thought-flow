@@ -123,7 +123,7 @@ export function showGraphView(
   const panel = vscode.window.createWebviewPanel(
     "thoughtflowGraph",
     "ThoughtFlow - Call Graph",
-    vscode.ViewColumn.One,
+    vscode.ViewColumn.Beside, // Open beside current editor, not replacing it
     {
       enableScripts: true,
       localResourceRoots: [vscode.Uri.joinPath(context.extensionUri, "dist", "templates")],
@@ -227,7 +227,7 @@ export function showGraphView(
             // Navigate to the code location in the editor
             await vscode.window.showTextDocument(doc, {
               selection: new vscode.Range(pos, pos),
-              viewColumn: vscode.ViewColumn.Beside, // Open beside the graph panel
+              viewColumn: vscode.ViewColumn.One, // Go back to original code panel
             });
             output.appendLine(`[Extension] Navigated to code location`);
           } catch (e) {
