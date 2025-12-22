@@ -21,11 +21,14 @@ ThoughtFlow analyzes Python code and generates interactive call graphs, making i
 
 **Setup:**
 
-1. Clone and open in VS Code
-2. Install dependencies: `cd extension && npm install`
-3. Start watch mode: `cd extension && npm run watch` (keep running in terminal)
-4. Press `F5` → Select **"VS Code Extension Development"**
-5. In the new Extension Development Host window, open a Python project (or use `test-workspace/`)
+1. Clone the repository and open in VS Code
+2. Navigate to extension directory: `cd extension`
+3. Install dependencies: `npm install`
+4. Build the extension:
+   - **Option A (Recommended):** Watch mode for development: `npm run watch` (keeps running, auto-recompiles on save)
+   - **Option B:** One-time build: `npm run compile`
+5. Press `F5` → Select **"VS Code Extension Development"**
+6. In the new Extension Development Host window, open a Python project (or use `test-workspace/`)
 
 **Development:**
 
@@ -34,7 +37,8 @@ ThoughtFlow analyzes Python code and generates interactive call graphs, making i
 - Click on a function, then run:
   - `Cmd+Shift+A` / `Ctrl+Shift+A` → **Test Analyzer**
   - `Cmd+Shift+G` / `Ctrl+Shift+G` → **Test Graph**
-  - Command Palette → **"ThoughtFlow: Visualize Call Graph"** (full integration)
+  - Press `Cmd+Shift+P` / `Ctrl+Shift+P` to open the Command Palette
+    - Search for **"ThoughtFlow: Visualize Call Graph"** and run it
 - View logs: **View** → **Output** → Select **"ThoughtFlow"**
 
 Code auto-formats on save (Prettier for TS/JS). Feel free to mess with the codes in `experiments/test-formatting/`.
