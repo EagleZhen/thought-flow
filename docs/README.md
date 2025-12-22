@@ -1,4 +1,4 @@
-# Technical Documentation of Thought Flow
+# Technical Documentation of ThoughtFlow
 
 This directory contains the detailed technical documentation for understanding and working with the codebase.
 
