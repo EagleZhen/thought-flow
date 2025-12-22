@@ -56,6 +56,9 @@ __pycache__/
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Custom ignores
 experiments/VSCode_Extension_test/call-hierarchy-demo/out/extension.js
 experiments/VSCode_Extension_test/call-hierarchy-demo/out/extension.js.map
 test-workspace/.vscode/callHierarchy.json
+/output
