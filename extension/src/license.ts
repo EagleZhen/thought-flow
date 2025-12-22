@@ -168,22 +168,36 @@ export async function applyLicense(
  */
 export async function initializeAccountState(context: vscode.ExtensionContext): Promise<void> {
   try {
-    // Try to get existing session WITHOUT prompting user
+    // First, try to restore from cached state (instant, works offline)
+    const cachedState = context.globalState.get<any>(ACCOUNT_STATE_KEY);
+    if (cachedState) {
+      cachedAccount = {
+        tier: cachedState.tier,
+        login: cachedState.login,
+        licenseKey: cachedState.licenseKey,
+        licenseExpiresAt: cachedState.licenseExpiresAt
+          ? new Date(cachedState.licenseExpiresAt)
+          : undefined,
+      };
+      console.log(`✅ Restored account from cache: ${cachedAccount.login} (${cachedAccount.tier})`);
+    }
+
+    // Then try to get existing session WITHOUT prompting user
     const session = await vscode.authentication.getSession("github", ["user:email"], {
       createIfNone: false, // Don't prompt on activation - only when user uses a feature
     });
 
     if (!session) {
-      console.log("No GitHub session - skipping account initialization");
+      console.log("No GitHub session - using cached account only");
       return;
     }
 
-    // Fetch fresh account data from backend
+    // Refresh account data from backend in background (don't block on this)
     const account = await getOrCreateAccount(session);
     if (account) {
       cachedAccount = account;
       await context.globalState.update(ACCOUNT_STATE_KEY, account);
-      console.log(`✅ Account initialized: ${account.login} (${account.tier})`);
+      console.log(`✅ Account refreshed from backend: ${account.login} (${account.tier})`);
     }
   } catch (error) {
     console.error("❌ Failed to initialize account state:", error);
