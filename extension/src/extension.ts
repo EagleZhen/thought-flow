@@ -271,6 +271,30 @@ export function activate(context: vscode.ExtensionContext) {
       );
     })
   );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("thoughtflow.showAccountInfo", async () => {
+      const account = getCurrentAccount();
+
+      if (!account) {
+        vscode.window.showInformationMessage(
+          "Not signed in. Run 'ThoughtFlow: Visualize Call Graph' to sign in with GitHub."
+        );
+        return;
+      }
+
+      // Build info message
+      let message = `Account: ${account.login}\nTier: ${account.tier}`;
+      if (account.licenseKey) {
+        message += `\nLicense: ${account.licenseKey}`;
+        if (account.licenseExpiresAt) {
+          message += `\nExpires: ${account.licenseExpiresAt.toDateString()}`;
+        }
+      }
+
+      vscode.window.showInformationMessage(message, { modal: true });
+    })
+  );
 }
 
 export function deactivate() {}

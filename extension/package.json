@@ -61,6 +61,10 @@
       {
         "command": "thoughtflow.enterLicenseKey",
         "title": "ThoughtFlow: Enter License Key"
+      },
+      {
+        "command": "thoughtflow.showAccountInfo",
+        "title": "ThoughtFlow: Show Account Info"
       }
     ],
     "keybindings": [
