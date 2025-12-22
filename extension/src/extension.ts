@@ -261,9 +261,9 @@ export function activate(context: vscode.ExtensionContext) {
             const expiresMsg = result.expiresAt
               ? ` (expires ${result.expiresAt.toDateString()})`
               : "";
-            const accessMsg = result.tier === "paid" ? "You can now use all features!" : "";
+            const accessMsg = result.tier === "paid" ? " You can now use all features!" : "";
             vscode.window.showInformationMessage(
-              `✅ License applied! Tier: ${result.tier}${expiresMsg}. ${accessMsg}`
+              `✅ License applied! Tier: ${result.tier}${expiresMsg}.${accessMsg}`
             );
           } else {
             vscode.window.showErrorMessage(`❌ ${result.error}`);
