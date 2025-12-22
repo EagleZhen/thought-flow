@@ -113,6 +113,41 @@ function parseNodeId(id: string): { name: string; filePath: string; line: number
   }
 }
 
+/**
+ * Helper function to get document and position from node ID
+ * Extracts common logic used by both expand and navigate handlers
+ */
+async function getDocumentAndPosition(
+  nodeId: string,
+  output: vscode.OutputChannel
+): Promise<{ doc: vscode.TextDocument; pos: vscode.Position } | null> {
+  const parsed = parseNodeId(nodeId);
+  if (!parsed) {
+    output.appendLine(`[Extension] ❌ Failed to parse ID: ${nodeId}`);
+    return null;
+  }
+
+  const workspaceFolders = vscode.workspace.workspaceFolders;
+  if (!workspaceFolders || workspaceFolders.length === 0) {
+    return null;
+  }
+
+  const fileUri = vscode.Uri.joinPath(workspaceFolders[0].uri, parsed.filePath);
+
+  try {
+    const doc = await vscode.workspace.openTextDocument(fileUri);
+    const zeroBasedLine = Math.max(0, parsed.line - 1);
+    const lineText = doc.lineAt(zeroBasedLine).text;
+    const nameIndex = lineText.indexOf(parsed.name);
+    const pos = new vscode.Position(zeroBasedLine, nameIndex >= 0 ? nameIndex : 0);
+
+    return { doc, pos };
+  } catch (e) {
+    output.appendLine(`[ERROR] opening document: ${e}`);
+    return null;
+  }
+}
+
 export function showGraphView(
   context: vscode.ExtensionContext,
   graph: CytoscapeGraph,
@@ -166,26 +201,12 @@ export function showGraphView(
           const tappedNodeId = message.payload.id;
           output.appendLine(`[Webview] Node tapped (expand): ${tappedNodeId}`);
 
-          const parsed = parseNodeId(tappedNodeId);
-          if (!parsed) {
-            output.appendLine(`[Extension] ❌ Failed to parse ID: ${tappedNodeId}`);
-            return;
-          }
+          const result = await getDocumentAndPosition(tappedNodeId, output);
+          if (!result) return;
 
-          const workspaceFolders = vscode.workspace.workspaceFolders;
-          if (!workspaceFolders || workspaceFolders.length === 0) {
-            return;
-          }
-
-          const fileUri = vscode.Uri.joinPath(workspaceFolders[0].uri, parsed.filePath);
+          const { doc, pos } = result;
 
           try {
-            const doc = await vscode.workspace.openTextDocument(fileUri);
-            const zeroBasedLine = Math.max(0, parsed.line - 1);
-            const lineText = doc.lineAt(zeroBasedLine).text;
-            const nameIndex = lineText.indexOf(parsed.name);
-            const pos = new vscode.Position(zeroBasedLine, nameIndex >= 0 ? nameIndex : 0);
-
             const rawHierarchy = await getCallHierarchyAt(doc, pos);
             if (!rawHierarchy) return;
 
@@ -204,26 +225,12 @@ export function showGraphView(
           const tappedNodeId = message.payload.id;
           output.appendLine(`[Webview] Node Ctrl+clicked (navigate): ${tappedNodeId}`);
 
-          const parsed = parseNodeId(tappedNodeId);
-          if (!parsed) {
-            output.appendLine(`[Extension] ❌ Failed to parse ID: ${tappedNodeId}`);
-            return;
-          }
+          const result = await getDocumentAndPosition(tappedNodeId, output);
+          if (!result) return;
 
-          const workspaceFolders = vscode.workspace.workspaceFolders;
-          if (!workspaceFolders || workspaceFolders.length === 0) {
-            return;
-          }
-
-          const fileUri = vscode.Uri.joinPath(workspaceFolders[0].uri, parsed.filePath);
+          const { doc, pos } = result;
 
           try {
-            const doc = await vscode.workspace.openTextDocument(fileUri);
-            const zeroBasedLine = Math.max(0, parsed.line - 1);
-            const lineText = doc.lineAt(zeroBasedLine).text;
-            const nameIndex = lineText.indexOf(parsed.name);
-            const pos = new vscode.Position(zeroBasedLine, nameIndex >= 0 ? nameIndex : 0);
-
             // Navigate to the code location in the editor
             await vscode.window.showTextDocument(doc, {
               selection: new vscode.Range(pos, pos),
