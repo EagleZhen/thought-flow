@@ -1,7 +1,8 @@
 import * as vscode from "vscode";
 
 // Use preview backend URL if set in environment, otherwise use production
-const BACKEND_URL = process.env.PREVIEW_BACKEND_URL || "https://csci3100-thought-flow.vercel.app/api";
+const BACKEND_URL =
+  process.env.PREVIEW_BACKEND_URL || "https://csci3100-thought-flow.vercel.app/api";
 const VERCEL_BYPASS_SECRET = process.env.VERCEL_BYPASS_SECRET;
 
 // Global state key for caching account info
