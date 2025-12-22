@@ -89,9 +89,9 @@ export async function applyLicenseKey(
 
   const license = licenseSnap.data() as any;
 
-  // Check if already used
-  if (license.isUsed) {
-    return { success: false, error: "License key already used" };
+  // Check if already used by another user (allow reuse by same user)
+  if (license.isUsed && license.usedBy !== userId) {
+    return { success: false, error: "License key already used by another account" };
   }
 
   // Check if expired
