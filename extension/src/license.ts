@@ -188,10 +188,23 @@ export async function initializeAccountState(context: vscode.ExtensionContext): 
 }
 
 /**
- * Get current cached account info
- * @returns Current account or null if not authenticated
+ * Get current cached account info with expiration check
+ * @returns Current account or null if not authenticated or license expired
  */
 export function getCurrentAccount(): UserAccount | null {
+  if (!cachedAccount) {
+    return null;
+  }
+
+  // Check if license has expired
+  if (cachedAccount.licenseExpiresAt && cachedAccount.licenseExpiresAt < new Date()) {
+    // License expired - return account with downgraded tier
+    return {
+      ...cachedAccount,
+      tier: "free",
+    };
+  }
+
   return cachedAccount;
 }
 
