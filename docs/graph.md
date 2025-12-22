@@ -117,7 +117,9 @@ interface CytoscapeEdge {
 
 ## Interactive Features
 
-### Node Click
+### Node Interaction
+
+**Regular Click - Expand Graph:**
 
 1. User clicks node in graph
 2. Webview sends `NODE_TAPPED` message to extension
@@ -129,6 +131,23 @@ interface CytoscapeEdge {
 4. Extension sends `ADD_ELEMENTS` message back to webview
 5. Webview filters duplicates and adds new nodes/edges
 6. Layout re-runs with smooth animation
+
+**Ctrl+Click (Cmd+Click on Mac) - Navigate to Code:**
+
+1. User ctrl+click / cmd+click node in graph
+2. Webview detects modifier key (`ctrlKey || metaKey`)
+3. Webview sends `NODE_CTRL_CLICKED` message to extension
+4. Extension opens document at function definition in main editor panel (`ViewColumn.One`)
+5. No graph expansion occurs
+
+### PNG Export
+
+**Export button** (bottom-right corner) downloads current graph as high-resolution PNG:
+
+- Uses Cytoscape's `cy.png()` method with `scale: 3` for quality
+- White background, full graph exported
+- Filename format: `call-graph-YYYY-MM-DD-HHMMSS.png` (includes seconds to avoid duplication)
+- Downloads directly to browser's default location
 
 ### Expansion Strategy
 
@@ -181,8 +200,15 @@ VS Code automatically handles webview security.
 **Webview → Extension:**
 
 ```typescript
+// Regular click - expand graph
 {
   type: "NODE_TAPPED",
+  payload: { id: string }  // Encoded node ID
+}
+
+// Ctrl+Click - navigate to code
+{
+  type: "NODE_CTRL_CLICKED",
   payload: { id: string }  // Encoded node ID
 }
 ```
