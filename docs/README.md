@@ -8,9 +8,9 @@ The project consists of two main components:
 
 ### 1. **VS Code Extension** (`/extension`)
 
-- **Analyzer** ([analyzer.md](analyzer.md)) - Custom Python call hierarchy engine using VS Code APIs
-- **Graph Visualization** - Interactive Cytoscape.js graph in a webview panel
-- **License Management** - GitHub OAuth integration with tier-based feature access
+- **Analyzer** ([analyzer.md](analyzer.md)) - Custom Python call hierarchy engine with dual-path analysis (on definition vs. inside function)
+- **Graph Visualization** ([graph.md](graph.md)) - Interactive Cytoscape.js graph with incremental expansion and bidirectional navigation
+- **License Management** ([license.md](license.md)) - GitHub OAuth integration with client-side state management and tier-based feature access
 
 ### 2. **Backend API** (`/backend`)
 
