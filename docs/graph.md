@@ -101,7 +101,7 @@ interface CytoscapeEdge {
 
 ## Visual Styling
 
-- Vee-shaped arrows (`target-arrow-shape: "vee"`)
+- vee-shaped arrows (`target-arrow-shape: "vee"`)
 - 40% opacity
 - CSS transitions defined in JavaScript style config (not graphStyle.css)
 
