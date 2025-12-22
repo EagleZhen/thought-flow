@@ -610,9 +610,9 @@ export async function analyzeCallHierarchy(
       output.appendLine(`✅ Saved to ${fileUri.fsPath}`);
       vscode.window.showInformationMessage(`Call hierarchy saved to ${fileUri.fsPath}`);
 
-      // Open the JSON file in the editor so user can see the results
+      // Open the JSON file beside the current editor
       const jsonDoc = await vscode.workspace.openTextDocument(fileUri);
-      await vscode.window.showTextDocument(jsonDoc);
+      await vscode.window.showTextDocument(jsonDoc, { viewColumn: vscode.ViewColumn.Beside });
     } else {
       // No workspace folder is open (user opened a single file, not a folder)
       vscode.window.showWarningMessage("No workspace folder open.");
