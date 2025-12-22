@@ -162,8 +162,9 @@ export function showGraphView(
         output.appendLine(`[DEBUG] Received message type: ${message.type}`);
 
         if (message.type === "NODE_TAPPED") {
+          // Regular click - Expand graph only
           const tappedNodeId = message.payload.id;
-          output.appendLine(`[Webview] Node tapped: ${tappedNodeId}`);
+          output.appendLine(`[Webview] Node tapped (expand): ${tappedNodeId}`);
 
           const parsed = parseNodeId(tappedNodeId);
           if (!parsed) {
@@ -172,7 +173,9 @@ export function showGraphView(
           }
 
           const workspaceFolders = vscode.workspace.workspaceFolders;
-          if (!workspaceFolders || workspaceFolders.length === 0) return;
+          if (!workspaceFolders || workspaceFolders.length === 0) {
+            return;
+          }
 
           const fileUri = vscode.Uri.joinPath(workspaceFolders[0].uri, parsed.filePath);
 
@@ -195,6 +198,40 @@ export function showGraphView(
             output.appendLine(`[Extension] Sent new elements to webview`);
           } catch (e) {
             output.appendLine(`[ERROR] processing node tap: ${e}`);
+          }
+        } else if (message.type === "NODE_CTRL_CLICKED") {
+          // Ctrl+Click - Navigate to code only (no expansion)
+          const tappedNodeId = message.payload.id;
+          output.appendLine(`[Webview] Node Ctrl+clicked (navigate): ${tappedNodeId}`);
+
+          const parsed = parseNodeId(tappedNodeId);
+          if (!parsed) {
+            output.appendLine(`[Extension] ❌ Failed to parse ID: ${tappedNodeId}`);
+            return;
+          }
+
+          const workspaceFolders = vscode.workspace.workspaceFolders;
+          if (!workspaceFolders || workspaceFolders.length === 0) {
+            return;
+          }
+
+          const fileUri = vscode.Uri.joinPath(workspaceFolders[0].uri, parsed.filePath);
+
+          try {
+            const doc = await vscode.workspace.openTextDocument(fileUri);
+            const zeroBasedLine = Math.max(0, parsed.line - 1);
+            const lineText = doc.lineAt(zeroBasedLine).text;
+            const nameIndex = lineText.indexOf(parsed.name);
+            const pos = new vscode.Position(zeroBasedLine, nameIndex >= 0 ? nameIndex : 0);
+
+            // Navigate to the code location in the editor
+            await vscode.window.showTextDocument(doc, {
+              selection: new vscode.Range(pos, pos),
+              viewColumn: vscode.ViewColumn.Beside, // Open beside the graph panel
+            });
+            output.appendLine(`[Extension] Navigated to code location`);
+          } catch (e) {
+            output.appendLine(`[ERROR] processing Ctrl+click: ${e}`);
           }
         }
       },
