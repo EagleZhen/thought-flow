@@ -8,10 +8,11 @@ ThoughtFlow analyzes Python code and generates interactive call graphs, making i
 
 ## Features
 
-- **Interactive Call Graphs** - Visualize function call hierarchies as explorable mind maps
+- **Interactive Call Graphs** - Visualize function call hierarchies as explorable mind maps with pan, zoom, and drag
 - **Incremental Expansion** - Click nodes to expand callers or callees on demand
 - **Bidirectional Navigation** - Explore both incoming calls (who calls this) and outgoing calls (what this calls)
-- **Source Code Integration** - Click nodes to jump directly to function definitions
+- **Source Code Navigation** - Ctrl+Click (Cmd+Click on Mac) nodes to jump directly to function definitions
+- **PNG Export** - Export current graph as high-resolution image with one click
 - **Python Support** - Custom analysis engine for Python codebases
 
 ## Getting Started
