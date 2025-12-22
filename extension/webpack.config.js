@@ -3,8 +3,8 @@
 "use strict";
 
 const path = require("path");
-const webpack = require("webpack");
 const CopyWebpackPlugin = require("copy-webpack-plugin");
+const Dotenv = require("dotenv-webpack");
 
 //@ts-check
 /** @typedef {import('webpack').Configuration} WebpackConfig **/
@@ -53,9 +53,12 @@ const extensionConfig = {
     new CopyWebpackPlugin({
       patterns: [{ from: "src/templates", to: "templates" }],
     }),
-    new webpack.DefinePlugin({
-      "process.env.PREVIEW_BACKEND_URL": JSON.stringify(process.env.PREVIEW_BACKEND_URL),
-      "process.env.VERCEL_BYPASS_SECRET": JSON.stringify(process.env.VERCEL_BYPASS_SECRET),
+    new Dotenv({
+      path: path.resolve(__dirname, ".env.local"),
+      safe: false, // Don't require .env.example
+      systemvars: true, // Load system environment variables as well
+      silent: true, // Don't fail if .env.local doesn't exist
+      defaults: false,
     }),
   ],
 };
