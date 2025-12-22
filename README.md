@@ -6,6 +6,14 @@ A VS Code extension that helps developers understand complex codebases by visual
 
 ThoughtFlow analyzes Python code and generates interactive call graphs, making it easier to trace execution flow and understand how functions interact.
 
+## Features
+
+- **Interactive Call Graphs** - Visualize function call hierarchies as explorable mind maps
+- **Incremental Expansion** - Click nodes to expand callers or callees on demand
+- **Bidirectional Navigation** - Explore both incoming calls (who calls this) and outgoing calls (what this calls)
+- **Source Code Integration** - Click nodes to jump directly to function definitions
+- **Python Support** - Custom analysis engine for Python codebases
+
 ## Getting Started
 
 **Prerequisites:** VS Code, Node.js
@@ -29,6 +37,10 @@ ThoughtFlow analyzes Python code and generates interactive call graphs, making i
 - View logs: **View** → **Output** → Select **"ThoughtFlow"**
 
 Code auto-formats on save (Prettier for TS/JS). Feel free to mess with the codes in `experiments/test-formatting/`.
+
+## Documentation
+
+For technical architecture and implementation details, see [docs/](docs/).
 
 ## Course Project
 
