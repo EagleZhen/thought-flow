@@ -47,7 +47,7 @@ The extension calls a single endpoint on Vercel. The backend:
   "tier": "free",
   "login": "octocat",
   "licenseKey": "ABCD-1234-EFGH-5678", // Only if license applied
-  "licenseExpiresAt": "2024-12-31T23:59:59Z" // Only if license applied
+  "licenseExpiresAt": "2026-12-31T23:59:59Z" // Only if license applied
 }
 ```
 
