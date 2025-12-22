@@ -163,3 +163,36 @@ window.addEventListener("message", (event) => {
     }
   }
 });
+
+/**
+ * Export graph as PNG
+ */
+document.getElementById("export-btn").addEventListener("click", function () {
+  if (!cy) {
+    console.error("Cytoscape instance not initialized");
+    return;
+  }
+
+  try {
+    // Generate PNG data URL with high quality
+    const pngData = cy.png({
+      output: "blob",
+      full: true,
+      scale: 3, // 3x resolution for better quality
+    });
+
+    // Create download link
+    const url = URL.createObjectURL(pngData);
+    const link = document.createElement("a");
+    link.href = url;
+    // Format: call-graph-2025-12-21-183045.png (includes seconds to avoid duplication)
+    const dateStr = new Date().toISOString().slice(0, 19).replace(/:/g, "").replace("T", "-");
+    link.download = `call-graph-${dateStr}.png`;
+    link.click();
+
+    // Clean up
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error("Error exporting PNG:", error);
+  }
+});
