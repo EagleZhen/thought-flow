@@ -584,7 +584,7 @@ export async function analyzeCallHierarchy(
       outgoing: (result.callees ?? []).map((callee) => ({
         name: callee.to.name,
         filePath: toRel(callee.to.uri),
-        line: callee.fromRanges[0].start.line + 1,
+        line: callee.to.selectionRange.start.line + 1,
       })),
     };
 
