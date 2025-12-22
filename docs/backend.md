@@ -11,15 +11,17 @@ VS Code Extension          Vercel Backend           Firebase Firestore
        |                        | (GitHub API)              |
        |                        |                           |
        |                        |--Get/Create Account------>|
+       |                        |  or Apply License         |
        |                        |                           |
-       |<--{tier, login}--------|                           |
+       |<--{tier, login, ...}---|                           |
        |
 ```
 
 The extension calls a single endpoint on Vercel. The backend:
+
 1. Verifies the GitHub token is valid and matches the user ID
-2. Checks if user exists in Firestore; creates new account if not
-3. Returns user's license tier and GitHub username
+2. Performs the requested action (get account or apply license)
+3. Returns user's license tier, GitHub username, and license details
 
 ---
 
@@ -27,25 +29,55 @@ The extension calls a single endpoint on Vercel. The backend:
 
 **URL:** `https://csci3100-thought-flow.vercel.app/api`
 
+### Get or Create Account
+
 **Request (POST):**
+
 ```json
 {
-  "userId": <a numeric GitHub user ID as a string>,
+  "userId": "31062364",
   "githubToken": "gho_xxx..."
 }
 ```
 
 **Response (200):**
+
 ```json
 {
   "tier": "free",
-  "login": "octocat"
+  "login": "octocat",
+  "licenseKey": "ABCD-1234-EFGH-5678", // Only if license applied
+  "licenseExpiresAt": "2024-12-31T23:59:59Z" // Only if license applied
 }
 ```
 
-**Error Responses:**
-- `400` - Bad request (missing/invalid fields)
-- `401` - Invalid token or user ID mismatch
+### Apply License Key
+
+**Request (POST):**
+
+```json
+{
+  "action": "applyLicense",
+  "userId": "31062364",
+  "githubToken": "gho_xxx...",
+  "licenseKey": "PAID-0001-2025-1222"
+}
+```
+
+**Response (200):**
+
+```json
+{
+  "success": true,
+  "tier": "paid",
+  "expiresAt": "2026-12-22T00:00:00Z"
+}
+```
+
+### Error Responses
+
+- `400` - Bad request (missing fields, invalid license, expired license, license already used)
+- `401` - Invalid GitHub token or user ID mismatch
 - `405` - Wrong HTTP method
 - `500` - Server error
 
@@ -54,62 +86,142 @@ The extension calls a single endpoint on Vercel. The backend:
 ## Implementation
 
 **Files:**
-- `backend/api/index.ts` - HTTP handler, GitHub API verification, orchestration
-- `backend/api/firebase.ts` - Firestore initialization and account operations
 
-**Key Pattern:** Uses Firestore's `create()` method with error handling to safely handle concurrent get-or-create requests.
+- `backend/api/index.ts` - HTTP handler, GitHub API verification, request routing
+- `backend/api/firebase.ts` - Firestore operations (accounts & licenses)
+
+**Key Patterns:**
+
+- **Get-or-create**: Uses Firestore's `create()` with `ALREADY_EXISTS` error handling
+- **License application**: Atomic transaction to prevent race conditions
+- **Validation order**: Check expiration before checking if used (better error messages)
 
 ---
 
-## Database
+## Database Schema
 
-**Firestore Collection:** `accounts`
-**Document ID:** GitHub user ID (immutable, prevents spoofing)
+### Collection: `accounts`
 
-Schema:
+**Document ID:** GitHub user ID (numeric)
+
 ```typescript
 {
-  githubUserId: string;      // Reference to GitHub user ID
-  login: string;             // GitHub username (from API response)
-  tier: "free" | "paid";     // License tier
-  createdAt: Timestamp;      // Account creation time
+  createdAt: Timestamp; // Account creation time
+  githubUserId: string; // GitHub user ID (immutable)
+  licenseKey: string | null; // Applied license key (if any)
+  licenseExpiresAt: Timestamp | null; // License expiration
+  login: string; // GitHub username
+  tier: "free" | "paid"; // Current license tier
 }
 ```
 
-**Security:** `allow read, write: if false;` - Only backend (service account) can access.
+### Collection: `licenses`
+
+**Document ID:** License key (e.g., "PAID-0001-2025-1222")
+
+```typescript
+{
+  expiresAt: Timestamp; // Expiration date
+  isUsed: boolean; // Whether key has been used
+  tier: "free" | "paid"; // License tier
+  usedAt: Timestamp | null; // When it was used
+  usedBy: string | null; // GitHub user ID who used it
+}
+```
+
+**Security Rules:** `allow read, write: if false;` - Only backend service account can access.
+
+**Why Firestore?**
+
+- **Serverless-friendly**: Works perfectly with Vercel's stateless functions
+- **Secure**: Service account authentication prevents direct client access
+- **Simple**: NoSQL schema matches our needs (no complex relationships)
+- **Concurrent-safe**: Built-in atomic operations and transactions
+
+---
+
+## License Application Flow
+
+1. **Verify license exists** in `licenses` collection
+2. **Check expiration** - Reject if expired
+3. **Check usage** - Reject if used by another user (same user can re-apply)
+4. **Atomic transaction**:
+   - Update `accounts/{userId}` with tier and license info
+   - Mark license as used in `licenses/{licenseKey}`
 
 ---
 
 ## Deployment
 
-**Platform:** Vercel (Node.js serverless)
+**Platform:** Vercel (Node.js 18.x serverless functions)
 
-**Environment Variable:**
-- `FIREBASE_SERVICE_ACCOUNT` - Firebase service account JSON (single-line format)
+**Environment Variables** (set in Vercel dashboard: Settings → Environment Variables)
 
-Set in Vercel dashboard: Settings → Environment Variables
+- `FIREBASE_SERVICE_ACCOUNT` - Firebase Admin SDK credentials (JSON, single-line)
+- `VERCEL_BYPASS_SECRET` - Protection bypass token (for preview deployments)
+
+The backend auto-deploys via GitHub integration. Different branches deploy to different environments:
+
+### Production (main branch)
+
+**Deployment:** Push to `main` → auto-deploy to production  
+**URL:** `https://csci3100-thought-flow.vercel.app/api`  
+**Protection:** None - publicly accessible  
+**Extension config:** No configuration needed (default URL)
+
+### Preview (feature branches)
+
+**Deployment:** Push to any branch → auto-deploy to unique preview URL  
+**URL:** `https://thought-flow-{branch}-{hash}.vercel.app/api` (find in Vercel dashboard or PR comments)  
+**Protection:** Requires `x-vercel-protection-bypass` header  
+**Extension config:**
+
+```bash
+# extension/.env.local
+PREVIEW_BACKEND_URL=https://thought-flow-branch-xyz.vercel.app/api
+VERCEL_BYPASS_SECRET=your_bypass_token_here
+```
+
+The extension automatically uses preview URL when `PREVIEW_BACKEND_URL` is set, and includes the bypass header when `VERCEL_BYPASS_SECRET` is provided.
 
 ---
 
-## Development & Testing
+## Testing
 
-**Test the endpoint:**
+### With Extension
+
+1. For production: No configuration needed
+2. For preview: Set `PREVIEW_BACKEND_URL` and `VERCEL_BYPASS_SECRET` in `extension/.env.local`
+3. Rebuild extension: `npm run watch` (or `npm run compile` for one-time build)
+4. Reload VS Code window
+5. Test features (sign in, apply license, etc.)
+
+### With curl
+
 ```bash
+# Production
 curl -X POST https://csci3100-thought-flow.vercel.app/api \
   -H "Content-Type: application/json" \
-  -d '{"userId": "31062364", "githubToken": "ghu_..."}'
+  -d '{"userId": "YOUR_GITHUB_ID", "githubToken": "YOUR_TOKEN"}'
+
+# Preview (requires bypass header)
+curl -X POST https://thought-flow-branch-xyz.vercel.app/api \
+  -H "Content-Type: application/json" \
+  -H "x-vercel-protection-bypass: YOUR_BYPASS_TOKEN" \
+  -d '{"userId": "YOUR_GITHUB_ID", "githubToken": "YOUR_TOKEN"}'
 ```
 
-**View logs:**
-Vercel dashboard → Deployments → Recent deployment → Functions → api
+**View logs:** Vercel Dashboard → Deployments → Select the specific deployment → Logs
 
 ---
 
 ## Key Design Decisions
 
-| Decision | Why |
-|----------|-----|
-| **Vercel** | Firebase Admin SDK needs Node.js (Cloudflare Workers don't have it) |
-| **Firestore** | Secure (service account only), simple schema, handles concurrent writes |
-| **Numeric GitHub ID** | Immutable, perfect document key |
-| **Single /api endpoint** | Simple, stateless, all logic in one place |
+| Decision                    | Rationale                                                         |
+| --------------------------- | ----------------------------------------------------------------- |
+| **Single /api endpoint**    | Simpler than multiple endpoints; action parameter routes requests |
+| **Vercel over Cloudflare**  | Firebase Admin SDK requires Node.js runtime                       |
+| **GitHub user ID as key**   | Immutable identifier prevents account spoofing                    |
+| **Transaction for license** | Ensures atomicity; prevents double-assignment race conditions     |
+| **Check expiry first**      | Better UX - users see "expired" instead of "already used"         |
+| **Allow re-application**    | Same user can re-enter their own key without errors               |
