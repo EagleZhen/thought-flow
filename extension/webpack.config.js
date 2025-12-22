@@ -3,6 +3,7 @@
 "use strict";
 
 const path = require("path");
+const webpack = require("webpack");
 const CopyWebpackPlugin = require("copy-webpack-plugin");
 
 //@ts-check
@@ -51,6 +52,10 @@ const extensionConfig = {
   plugins: [
     new CopyWebpackPlugin({
       patterns: [{ from: "src/templates", to: "templates" }],
+    }),
+    new webpack.DefinePlugin({
+      "process.env.PREVIEW_BACKEND_URL": JSON.stringify(process.env.PREVIEW_BACKEND_URL),
+      "process.env.VERCEL_BYPASS_SECRET": JSON.stringify(process.env.VERCEL_BYPASS_SECRET),
     }),
   ],
 };

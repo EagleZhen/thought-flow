@@ -1,6 +1,24 @@
 import * as vscode from "vscode";
 
-const BACKEND_URL = "https://csci3100-thought-flow.vercel.app/api";
+// Use preview backend URL if set in environment, otherwise use production
+const BACKEND_URL = process.env.PREVIEW_BACKEND_URL || "https://csci3100-thought-flow.vercel.app/api";
+const VERCEL_BYPASS_SECRET = process.env.VERCEL_BYPASS_SECRET;
+
+/**
+ * Get fetch headers with Vercel bypass if needed
+ */
+function getFetchHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+
+  // Add Vercel protection bypass header if secret is available
+  if (VERCEL_BYPASS_SECRET) {
+    headers["x-vercel-protection-bypass"] = VERCEL_BYPASS_SECRET;
+  }
+
+  return headers;
+}
 
 /**
  * User account info from backend
