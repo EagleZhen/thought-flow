@@ -25,7 +25,7 @@ export function getDb() {
  * Get existing account or create new one with free tier
  * @param userId - GitHub numeric user ID (as string)
  * @param login - GitHub username (login field)
- * @returns Account data with tier and login
+ * @returns Account data with tier, login, and optional license information
  */
 export async function getOrCreateAccount(
   userId: string,
