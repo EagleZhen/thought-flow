@@ -4,72 +4,53 @@ This document acknowledges the use of AI tools in the ThoughtFlow project, in co
 
 ## Purpose
 
-AI tools were used as **development assistants** to accelerate certain aspects of development, allowing the team to focus on design, architecture, and complex problem-solving.
+AI tools were used as development assistants to accelerate implementation while the team focused on design, architecture, and complex problem-solving.
 
 ## Tools Used
 
-- **Claude Code** (Anthropic) - Code assistance and boilerplate generation
-- **GitHub Copilot** - Code completion (if applicable)
-- **ChatGPT/Claude** - Technical discussions and architecture brainstorming (if applicable)
+- **Claude Code/GitHub Copilot** - Code assistance, completion, and automated reviews
+- **ChatGPT/Claude/Gemini/Grok** - Technical discussions and problem-solving
 
-## Scope of AI Usage
+## Scope of Usage
 
-### Architecture & Design ✅ **Human-Led**
+### Architecture & Design (Human-Led)
 
 - Technology stack selection (TypeScript, Python, VS Code APIs)
-- System architecture (extension + core + llm-service structure)
+- System architecture (extension + backend structure)
 - API and interface design
-- Feature prioritization and project scope
-- Algorithm and logic design
+- Feature prioritization and core algorithms
 
-**AI Role**: Discussed trade-offs, suggested patterns, validated technical approaches
+**AI Role:** Discussed trade-offs and suggested patterns
 
-### Implementation 🤖 **AI-Assisted**
+### Implementation (AI-Assisted)
 
-- Boilerplate code (project setup, type definitions, basic structures)
-- Utility functions and helpers
+- Boilerplate code and utility functions
 - Code formatting and structure suggestions
 - Error handling patterns
 
-**Human Role**: All code reviewed, understood, tested, and adapted by team members
+**Human Role:** All code reviewed, understood, tested, and adapted by team
 
-### Documentation 📝 **Collaborative**
+### Documentation (Collaborative)
 
-- README structure and organization
-- API documentation templates
+- Technical documentation drafting
+- README structure and API documentation
 - Code comments and inline documentation
 
-**Human Role**: Content, technical decisions, and project-specific details written by team
+**Human Role:** Content, technical decisions, and project-specific details written by team
+
+### Code Reviews (AI-Assisted)
+
+- Automated suggestions via GitHub Copilot in pull requests
+- Code quality recommendations
+
+**Human Role:** All reviews evaluated by team, final decisions made by humans
 
 ## What AI Did NOT Do
 
-- ❌ Make architectural decisions
-- ❌ Design core algorithms or business logic
-- ❌ Choose project features or scope
-- ❌ Write code without human review and understanding
-- ❌ Determine technical approaches or frameworks
-
-## Quality Assurance
-
-All AI-assisted code underwent:
-
-1. **Human review** - Team members read and understood all code
-2. **Testing** - Validated functionality and correctness
-3. **Adaptation** - Modified to fit project-specific requirements
-4. **Integration** - Incorporated into human-designed architecture
-
-## Rationale
-
-Using AI tools reflects modern software development practices. Professional teams use these tools to:
-
-- Reduce time on repetitive tasks
-- Focus human effort on complex problem-solving
-- Accelerate learning of new technologies
-
-Our use of AI tools follows this professional standard while ensuring the core intellectual work—design, architecture, and critical implementation—remains human-driven.
-
-## Example Usage
+- Make architectural or design decisions
+- Write code without human review and understanding
+- Determine technical approaches or core business logic
 
 ---
 
-_Last updated: October 2025_
+_Last updated: December 2025_

@@ -6,23 +6,13 @@ A VS Code extension that helps developers understand complex codebases by visual
 
 ThoughtFlow analyzes Python code and generates interactive call graphs, making it easier to trace execution flow and understand how functions interact.
 
-## Project Structure
+## Features
 
-- `docs/` - Documentation
-- `experiments/` - Sandbox for prototyping new approaches
-- `extension/` - VS Code extension (TypeScript)
-  - `src/` - Source code (supports `@/*` path aliases)
-    - `extension.ts` - Extension activation, command registration, orchestration
-    - `analyzer.ts` - Code analysis using VS Code LSP
-    - `graph.ts` - Graph visualization with Cytoscape.js
-    - `license.ts` - User and license management
-    - `types.ts` - Shared type definitions
-    - `templates/` - HTML/CSS/JS templates for webview
-  - `dist/` - Production build output (Webpack)
-  - `out/` - Development build output (tests)
-- `license-service/` - Backend API for user and license management (to be implemented)
-- `llm-service/` - Optional LLM integration (future)
-- `test-workspace/` - Sample Python projects for testing the extension
+- **Interactive Call Graphs** - Visualize function call hierarchies as explorable mind maps
+- **Incremental Expansion** - Click nodes to expand callers or callees on demand
+- **Bidirectional Navigation** - Explore both incoming calls (who calls this) and outgoing calls (what this calls)
+- **Source Code Integration** - Click nodes to jump directly to function definitions
+- **Python Support** - Custom analysis engine for Python codebases
 
 ## Getting Started
 
@@ -47,6 +37,10 @@ ThoughtFlow analyzes Python code and generates interactive call graphs, making i
 - View logs: **View** → **Output** → Select **"ThoughtFlow"**
 
 Code auto-formats on save (Prettier for TS/JS). Feel free to mess with the codes in `experiments/test-formatting/`.
+
+## Documentation
+
+For technical architecture and implementation details, see [docs/](docs/).
 
 ## Course Project
 
